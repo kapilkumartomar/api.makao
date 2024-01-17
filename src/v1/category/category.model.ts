@@ -1,14 +1,18 @@
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
-  email: {
+  title: {
     type: String,
     required: true,
     unique: true,
   },
-  password: {
+  img: {
     type: String,
     required: true,
+  },
+  status: {
+    type: Boolean,
+    default: true,
   },
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields

@@ -30,7 +30,7 @@ export async function handleUserSignIn(req: Request, res: Response) {
     });
 
     return res.status(200).json({
-      message: 'Sign in successfull',
+      message: 'Sign in successfully',
       data: { _id: query._id, token },
     });
   } catch (ex: any) {

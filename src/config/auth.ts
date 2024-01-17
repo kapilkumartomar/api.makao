@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Response, Request, NextFunction } from 'express';
 
 import jsonWebToken from 'jsonwebtoken';
@@ -12,6 +13,8 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
         req.headers.authorization.split(' ')[1],
         process.env.JWT_STRING as string,
       );
+
+      console.log('userinf', verify);
       if (verify) {
         req.body.userInfo = verify as any;
         return next();

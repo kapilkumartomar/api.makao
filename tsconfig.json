@@ -14,7 +14,7 @@
        "paths": {
         "@startup/*": ["src/startup/*"],
         "@config/*": ["src/config/*"],
-        "@util/*": ["src/v1/util/*"],
+        "@util/*": ["src/util/*"],
         "@user/*": ["src/v1/user/*"],
        },                                 /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
       "esModuleInterop": true,                        /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
