@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const userSchema = new mongoose.Schema({
+const categorySchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
@@ -18,6 +18,6 @@ const userSchema = new mongoose.Schema({
   timestamps: true, // Automatically add createdAt and updatedAt fields
 });
 
-const User = mongoose.model('User', userSchema);
+const Category = mongoose.model('Category', categorySchema);
 
-export default User;
+export default Category;

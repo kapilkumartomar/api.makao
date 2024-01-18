@@ -17,7 +17,10 @@ export interface IEvent extends Document {
   challenges: IChallenge[];
   proposal?: boolean;
   fees?: number;
-  category: Types.ObjectId[];
+  category: Types.ObjectId;
+  createdBy: Types.ObjectId
+  createdAt: Date
+  updatedAt: Date
 }
 
 const eventSchema = new Schema<IEvent>({
@@ -65,7 +68,10 @@ const eventSchema = new Schema<IEvent>({
     default: 0,
   },
   category: {
-    type: [Schema.Types.ObjectId], // Array of strings
+    type: Schema.Types.ObjectId,
+  },
+  createdBy: {
+    type: Schema.Types.ObjectId,
   },
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields
