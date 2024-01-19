@@ -1,6 +1,6 @@
 # api.makao
 
-
+Absolute paths needs to be define in the babelrc file as well.
 
 ## Getting started
 

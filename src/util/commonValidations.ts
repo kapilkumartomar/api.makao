@@ -1,6 +1,9 @@
-import { body } from 'express-validator';
+import { body, query } from 'express-validator';
 
 export const validateEmail = body('email').trim()
+  .isEmail().withMessage('Email should be valid email.');
+
+export const validateEmailQuery = query('email').trim()
   .isEmail().withMessage('Email should be valid email.');
 
 export const validatePassword = body('password').isLength({ min: 6 }).withMessage('Password should have atleast 6 character')

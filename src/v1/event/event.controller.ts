@@ -2,7 +2,10 @@
 import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
-import { createEvent } from './event.resources';
+import { wentWrong } from '@util/helper';
+import {
+  createEvent, createEventComments, getEventComments, updateEvent,
+} from './event.resources';
 import { createChallenges } from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
 
@@ -34,7 +37,78 @@ export async function handleCreateEvent(req: Request, res: Response) {
     });
   } catch (ex: any) {
     return res.status(500).json({
-      message: ex?.message ?? 'Something went wrong! try again later',
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+// Create a comment for an event
+export async function handleCreateComment(req: Request, res: Response) {
+  const { body, params } = req;
+  const eventId = params._id;
+
+  try {
+    const updatedEvent = await createEventComments(eventId as any, { ...body, createdBy: body.userInfo?._id });
+
+    if (!updatedEvent) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Comment created successfully',
+      data: req.body,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+// Create a comment for an event
+export async function handleGetComments(req: Request, res: Response) {
+  const { query, params } = req;
+  const eventId = params._id;
+
+  try {
+    const eventComments = await getEventComments(eventId as any, query);
+
+    if (!eventComments) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Comment fetched successfully',
+      data: eventComments,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+// updte an event
+export async function handleUpdateEvent(req: Request, res: Response) {
+  const { body, params } = req;
+  const eventId = params._id;
+
+  try {
+    const updatedEvent = await updateEvent(eventId as any, body);
+
+    if (!updatedEvent) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Event updated successfully',
+      data: req.body,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
     });
   }
 }

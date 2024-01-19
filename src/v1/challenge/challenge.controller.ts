@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 
+import { wentWrong } from '@util/helper';
 import { createChallenge } from './challenge.resources';
 
-export async function handleCreateEvent(req: Request, res: Response) {
+export async function handleCreateChallenge(req: Request, res: Response) {
   try {
     const { body } = req;
 
@@ -14,7 +15,7 @@ export async function handleCreateEvent(req: Request, res: Response) {
     });
   } catch (ex: any) {
     return res.status(500).json({
-      message: ex?.message ?? 'Something went wrong! try again later',
+      message: ex?.message ?? wentWrong,
     });
   }
 }

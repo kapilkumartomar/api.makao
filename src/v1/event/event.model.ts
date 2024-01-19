@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
+import commentSchema, { IComment } from './comment.model';
 
 interface IChallenge {
   title: string;
@@ -21,6 +22,7 @@ export interface IEvent extends Document {
   createdBy: Types.ObjectId
   createdAt: Date
   updatedAt: Date
+  comments: [IComment]
 }
 
 const eventSchema = new Schema<IEvent>({
@@ -55,10 +57,10 @@ const eventSchema = new Schema<IEvent>({
     type: String,
     required: true,
   },
-  challenges: [{
-    title: String,
-    logic: String,
-  }],
+  // challenges: [{
+  //   title: String,
+  //   logic: String,
+  // }],
   proposal: {
     type: Boolean,
     default: true,
@@ -73,6 +75,7 @@ const eventSchema = new Schema<IEvent>({
   createdBy: {
     type: Schema.Types.ObjectId,
   },
+  comments: [commentSchema], // Embedded comments array
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields
 });

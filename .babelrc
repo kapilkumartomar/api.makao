@@ -15,7 +15,7 @@
         "alias": {
           "@startup": "./src/startup",
           "@config": "./src/config",
-          "@util": "./src/v1/util",
+          "@util": "./src/util",
           "@user": "./src/v1/user"
         }
     }]

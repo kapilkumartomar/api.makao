@@ -2,7 +2,7 @@ import express from 'express';
 
 import { auth } from '@config/auth';
 import {
-  handleCreateEvent,
+  handleCreateChallenge,
 } from './challenge.controller';
 
 const routes = express.Router();
@@ -10,7 +10,7 @@ const routes = express.Router();
 routes.post(
   '/',
   auth,
-  handleCreateEvent,
+  handleCreateChallenge,
 );
 
 module.exports = routes;

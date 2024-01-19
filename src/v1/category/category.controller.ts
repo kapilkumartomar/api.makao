@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 
+import { wentWrong } from '@util/helper';
 import { findCategories } from './category.resources';
 
 export async function handleGetCategories(req: Request, res: Response) {
@@ -12,7 +13,7 @@ export async function handleGetCategories(req: Request, res: Response) {
     });
   } catch (ex: any) {
     return res.status(500).json({
-      message: ex?.message ?? 'Something went wrong! try again later',
+      message: ex?.message ?? wentWrong,
     });
   }
 }

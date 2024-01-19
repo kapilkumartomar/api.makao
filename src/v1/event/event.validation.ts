@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-syntax */
-import { body } from 'express-validator';
+import { body, check } from 'express-validator';
 
 export const validateCreateEvent = [
   body('name').not().isEmpty(),
@@ -17,10 +17,10 @@ export const validateCreateEvent = [
       for (const challenge of rawChallenges) {
         if (
           typeof challenge !== 'object'
-                    || typeof challenge.title !== 'string'
-                    || typeof challenge.logic !== 'string'
-                    || challenge.title.trim() === ''
-                    || challenge.logic.trim() === ''
+          || typeof challenge.title !== 'string'
+          || typeof challenge.logic !== 'string'
+          || challenge.title.trim() === ''
+          || challenge.logic.trim() === ''
         ) {
           throw new Error('Each challenge must have "title" and "logic" properties of type string');
         }
@@ -29,4 +29,14 @@ export const validateCreateEvent = [
       return true;
     }),
   body('category').not().isEmpty(),
+];
+
+export const validateCreateComment = [
+  check('_id').not().isEmpty(),
+  body('text').not().isEmpty(),
+];
+
+export const validateUpdateEvent = [
+  check('_id').not().isEmpty(),
+  body('videoLink').not().isEmpty(),
 ];

@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-import { createUser, findUser } from './user.resources';
+import { wentWrong } from '@util/helper';
+import { createUser, findUser, findUsers } from './user.resources';
 
 const BCRYPT_SALT = 10;
 export async function handleUserSignIn(req: Request, res: Response) {
@@ -35,7 +36,7 @@ export async function handleUserSignIn(req: Request, res: Response) {
     });
   } catch (ex: any) {
     return res.status(500).json({
-      message: ex?.message ?? 'Something went wrong! try again later',
+      message: ex?.message ?? wentWrong,
     });
   }
 }
@@ -64,7 +65,23 @@ export async function handleUserSignUp(req: Request, res: Response) {
     });
   } catch (ex: any) {
     return res.status(500).json({
-      message: ex?.message ?? 'Something went wrong! try again later',
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleUsersSearch(req: Request, res: Response) {
+  try {
+    const { email } = req.query;
+    const query: any = await findUsers({ email: email as string });
+
+    return res.status(200).json({
+      message: 'Users found successfully',
+      data: query,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
     });
   }
 }
