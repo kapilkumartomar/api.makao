@@ -7,6 +7,8 @@ import {
   handleCreateComment,
   handleCreateEvent,
   handleGetComments,
+  handleGetEvent,
+  handleGetEvents,
   handleUpdateEvent,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
@@ -20,6 +22,18 @@ routes.post(
   auth,
   validate(validateCreateEvent),
   handleCreateEvent,
+);
+
+routes.get(
+  '/',
+  auth,
+  handleGetEvents,
+);
+
+routes.get(
+  '/:_id',
+  auth,
+  handleGetEvent,
 );
 
 routes.patch(

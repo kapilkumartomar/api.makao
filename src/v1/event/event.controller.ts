@@ -4,10 +4,11 @@ import fs from 'fs/promises';
 
 import { wentWrong } from '@util/helper';
 import {
-  createEvent, createEventComments, getEventComments, updateEvent,
+  createEvent, createEventComments, getEvent, getEventComments, getEvents, updateEvent,
 } from './event.resources';
 import { createChallenges } from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
+import { IEvent } from './event.model';
 
 let dirname = __dirname;
 // eslint-disable-next-line prefer-destructuring
@@ -104,7 +105,45 @@ export async function handleUpdateEvent(req: Request, res: Response) {
 
     return res.status(200).json({
       message: 'Event updated successfully',
-      data: req.body,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetEvents(req: Request, res: Response) {
+  const { query } = req;
+
+  try {
+    const events = await getEvents(query);
+
+    return res.status(200).json({
+      message: 'Events fetched successfully',
+      data: events,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetEvent(req: Request, res: Response) {
+  const { params } = req;
+
+  try {
+    const events = await getEvent(params?._id);
+    const singleEvent = Array.isArray(events) ? events[0] as IEvent : {} as IEvent;
+    const { img } = singleEvent;
+    singleEvent.img = `${process.env.API_URL}images/${img}`;
+
+    return res.status(200).json({
+      message: 'Event fetched successfully',
+      data: singleEvent,
     });
   } catch (ex: any) {
     return res.status(500).json({

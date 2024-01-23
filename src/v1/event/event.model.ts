@@ -1,3 +1,6 @@
+/* eslint-disable no-use-before-define */
+/* eslint-disable consistent-return */
+/* eslint-disable no-unused-expressions */
 import mongoose, { Document, Schema, Types } from 'mongoose';
 import commentSchema, { IComment } from './comment.model';
 
@@ -39,6 +42,7 @@ const eventSchema = new Schema<IEvent>({
   },
   img: {
     type: String,
+    get: obfuscate,
   },
   privacy: {
     type: String,
@@ -78,7 +82,14 @@ const eventSchema = new Schema<IEvent>({
   comments: [commentSchema], // Embedded comments array
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields
+  toJSON: { getters: true, virtuals: false },
 });
+
+// Mongoose passes the raw value in MongoDB `email` to the getter
+function obfuscate(path: string) {
+  if (path) return `${process.env.API_URL}images/${path}`;
+  path;
+}
 
 const Event = mongoose.model<IEvent>('Event', eventSchema);
 

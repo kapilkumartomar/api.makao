@@ -17,7 +17,7 @@ export async function createEventComments(eventId: Schema.Types.ObjectId, commen
 
 export async function getEventComments(eventId: string, query: any) {
   const page = parseInt(query?.page) || 1; // Default to page 1
-  const pageSize = parseInt(query?.pageSize) || 20; // Default to 10 comments per page
+  const pageSize = parseInt(query?.pageSize) || 20; // Default to 20 comments per page
   return Event.aggregate([
     { $match: { _id: new mongoose.Types.ObjectId(eventId) } },
     // "unwind" or deconstruct an array field, creating a separate document for each element in the array
@@ -59,4 +59,35 @@ export async function updateEvent(eventId: Schema.Types.ObjectId, update: { vide
     update,
     { new: true },
   );
+}
+
+export async function getEvents(query: any) {
+  const page = parseInt(query?.page) || 1; // Default to page 1
+  const pageSize = parseInt(query?.pageSize) || 20; // Default to 20 events per page
+  return Event.find()
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * pageSize)
+    .limit(pageSize);
+}
+
+export async function getEvent(_id: string) {
+  return Event.aggregate([
+    {
+      $match: { _id: new mongoose.Types.ObjectId(_id) },
+    },
+    {
+      $lookup: {
+        from: 'challenges', // Assuming the challenges collection name
+        localField: '_id',
+        foreignField: 'event',
+        as: 'challenges',
+      },
+    },
+    // {
+    //   $project: {
+    //     _id: 1,
+    //     commentsCount: { $size: '$comments' }, // Assuming 'comments' is the array field in the Event schema
+    //   },
+    // },
+  ]);
 }
