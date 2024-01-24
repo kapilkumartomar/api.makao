@@ -7,3 +7,7 @@ export async function createChallenges(payload: IChallenge[]) {
 export async function createChallenge(payload: IChallenge) {
   return Challenges.create(payload);
 }
+
+export async function updateChallenge(_id: string, data: { odd: number }) {
+  return Challenges.findByIdAndUpdate(_id, data, { new: true });
+}

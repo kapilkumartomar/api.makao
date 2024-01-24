@@ -6,8 +6,8 @@ import { createChallenge } from './challenge.resources';
 export async function handleCreateChallenge(req: Request, res: Response) {
   try {
     const { body } = req;
-
-    const challenge = await createChallenge({ ...body, createdBy: body.userInfo?._id });
+    const status = body?.createdBy === body?.userInfo?._id;
+    const challenge = await createChallenge({ ...body, status, createdBy: body.userInfo?._id });
 
     return res.status(200).json({
       message: 'Challenge created successfully',

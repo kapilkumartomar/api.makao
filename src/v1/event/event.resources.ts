@@ -53,7 +53,7 @@ export async function getEventComments(eventId: string, query: any) {
   ]);
 }
 
-export async function updateEvent(eventId: Schema.Types.ObjectId, update: { videoLink: string }) {
+export async function updateEvent(eventId: Schema.Types.ObjectId, update: { videoLink?: string, volume?: number, '$inc': any }) {
   return Event.findByIdAndUpdate(
     eventId,
     update,
@@ -77,17 +77,21 @@ export async function getEvent(_id: string) {
     },
     {
       $lookup: {
-        from: 'challenges', // Assuming the challenges collection name
+        from: 'challenges', // challenges collection name
         localField: '_id',
         foreignField: 'event',
         as: 'challenges',
       },
     },
-    // {
-    //   $project: {
-    //     _id: 1,
-    //     commentsCount: { $size: '$comments' }, // Assuming 'comments' is the array field in the Event schema
-    //   },
-    // },
+    {
+      $addFields: {
+        commentsCount: { $size: '$comments' }, // 'comments' is the array field in the Event schema
+      },
+    },
+    {
+      $project: {
+        comments: 0,
+      },
+    },
   ]);
 }

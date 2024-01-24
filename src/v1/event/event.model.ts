@@ -21,6 +21,8 @@ export interface IEvent extends Document {
   challenges: IChallenge[];
   proposal?: boolean;
   fees?: number;
+  volume?: number;
+  playersCount?: number;
   category: Types.ObjectId;
   createdBy: Types.ObjectId
   createdAt: Date
@@ -70,6 +72,14 @@ const eventSchema = new Schema<IEvent>({
     default: true,
   },
   fees: {
+    type: Number,
+    default: 0,
+  },
+  volume: {
+    type: Number,
+    default: 0,
+  },
+  playersCount: {
     type: Number,
     default: 0,
   },

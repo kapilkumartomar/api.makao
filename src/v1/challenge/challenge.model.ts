@@ -4,6 +4,7 @@ export interface IChallenge {
     title: string;
     logic: string;
     status?: boolean,
+    odd?: Number
     event: Types.ObjectId;
     createdBy: Types.ObjectId;
     createdAt: Date
@@ -22,6 +23,10 @@ const challengeSchema = new Schema<IChallenge>({
   status: {
     type: Boolean,
     default: true,
+  },
+  odd: {
+    type: Number,
+    default: 0.9,
   },
   event: Schema.Types.ObjectId,
   createdBy: Schema.Types.ObjectId,

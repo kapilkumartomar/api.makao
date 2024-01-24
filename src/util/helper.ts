@@ -1,6 +1,7 @@
 import { Request } from 'express';
 
 export const wentWrong = 'Something went wrong! Please try again';
+export const makaoPlatformFeePercentage = 2.5 / 100; // this value is in percentage
 
 export type IDBQuery = {
   [key: string]: string | number | string[][] | { [key: string]: any };
