@@ -6,9 +6,6 @@ export async function createPlay(payload: IPlay) {
 }
 
 export async function getEventVolume({ eventId }: { eventId: string }) {
-  mongoose.set('debug', true);
-  // { challenge: new mongoose.Types.ObjectId(challengeId) }
-
   return Play.aggregate([
     {
       $match:
@@ -25,8 +22,6 @@ export async function getEventVolume({ eventId }: { eventId: string }) {
 }
 
 export async function getChallengeVolume({ challengeId }: { challengeId: string }) {
-  mongoose.set('debug', true);
-
   return Play.aggregate([
     {
       $match:
@@ -40,4 +35,8 @@ export async function getChallengeVolume({ challengeId }: { challengeId: string 
     },
 
   ]);
+}
+
+export async function findPlay(query: { playBy?: string, event?: string }) {
+  return Play.findOne(query);
 }

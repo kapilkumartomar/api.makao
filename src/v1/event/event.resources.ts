@@ -1,6 +1,7 @@
 /* eslint-disable radix */
 /* eslint-disable max-len */
 import mongoose, { Schema } from 'mongoose';
+import { IAnyObject } from '@util/helper';
 import Event, { IEvent } from './event.model';
 
 export async function createEvent(payload: IEvent) {
@@ -53,11 +54,17 @@ export async function getEventComments(eventId: string, query: any) {
   ]);
 }
 
-export async function updateEvent(eventId: Schema.Types.ObjectId, update: { videoLink?: string, volume?: number, '$inc': any }) {
+export async function updateEvent(
+  eventId: Schema.Types.ObjectId,
+  update: { videoLink?: string, volume?: number, '$inc': IAnyObject },
+  optionsPayload?: IAnyObject,
+) {
+  const options: IAnyObject = { new: true, ...optionsPayload } ?? { new: true };
+
   return Event.findByIdAndUpdate(
     eventId,
     update,
-    { new: true },
+    options,
   );
 }
 
@@ -65,12 +72,12 @@ export async function getEvents(query: any) {
   const page = parseInt(query?.page) || 1; // Default to page 1
   const pageSize = parseInt(query?.pageSize) || 20; // Default to 20 events per page
   return Event.find()
-    .sort({ createdAt: -1 })
+    .sort({ volume: -1 })
     .skip((page - 1) * pageSize)
     .limit(pageSize);
 }
 
-export async function getEvent(_id: string) {
+export async function getEvent(_id: string, userId: string) {
   return Event.aggregate([
     {
       $match: { _id: new mongoose.Types.ObjectId(_id) },
@@ -80,6 +87,30 @@ export async function getEvent(_id: string) {
         from: 'challenges', // challenges collection name
         localField: '_id',
         foreignField: 'event',
+        pipeline: [
+          {
+            $lookup: {
+              from: 'plays',
+              localField: '_id',
+              foreignField: 'challenge',
+              pipeline: [
+                {
+                  $match: {
+                    playBy: new mongoose.Types.ObjectId(userId),
+                  },
+                },
+                {
+                  $group: {
+                    _id: null,
+                    myPlay: { $sum: '$amount' },
+                  },
+                },
+              ],
+              as: 'plays',
+            },
+          },
+
+        ],
         as: 'challenges',
       },
     },

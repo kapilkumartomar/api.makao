@@ -133,10 +133,10 @@ export async function handleGetEvents(req: Request, res: Response) {
 }
 
 export async function handleGetEvent(req: Request, res: Response) {
-  const { params } = req;
+  const { params, body } = req;
 
   try {
-    const events = await getEvent(params?._id);
+    const events = await getEvent(params?._id, body?.userInfo?._id);
     const singleEvent = Array.isArray(events) ? events[0] as IEvent : {} as IEvent;
     const { img } = singleEvent;
     singleEvent.img = `${process.env.API_URL}images/${img}`;

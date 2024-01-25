@@ -21,3 +21,7 @@ export function queryGenerator(req: Request) {
     offset,
   };
 }
+
+export interface IAnyObject {
+  [key: string]: any;
+}
