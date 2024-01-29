@@ -9,6 +9,7 @@ import {
   handleGetComments,
   handleGetEvent,
   handleGetEvents,
+  handleGetUserEvents,
   handleUpdateEvent,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
@@ -28,6 +29,12 @@ routes.get(
   '/',
   auth,
   handleGetEvents,
+);
+
+routes.get(
+  '/user',
+  auth,
+  handleGetUserEvents,
 );
 
 routes.get(

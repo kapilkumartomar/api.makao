@@ -2,9 +2,9 @@
 import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
-import { wentWrong } from '@util/helper';
+import { IDBQuery, wentWrong } from '@util/helper';
 import {
-  createEvent, createEventComments, getEvent, getEventComments, getEvents, updateEvent,
+  createEvent, createEventComments, getEvent, getEventComments, getEvents, getEventsAndPlays, updateEvent,
 } from './event.resources';
 import { createChallenges } from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
@@ -114,13 +114,51 @@ export async function handleUpdateEvent(req: Request, res: Response) {
 }
 
 export async function handleGetEvents(req: Request, res: Response) {
-  const { query } = req;
+  const { query, body } = req;
+  const { type, ...basicQuery } = query ?? {};
+
+  const rawQuery: IDBQuery = {};
+  if (type === 'ORGANISED') {
+    rawQuery.createdBy = body?.userInfo?._id;
+  }
 
   try {
-    const events = await getEvents(query);
+    const events = await getEvents(rawQuery, basicQuery as IDBQuery);
 
     return res.status(200).json({
       message: 'Events fetched successfully',
+      data: events,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetUserEvents(req: Request, res: Response) {
+  const { query, body } = req;
+  const { type, ...basicQuery } = query ?? {};
+  const currentDateISO = new Date().toISOString();
+  const rawQuery: IDBQuery = {};
+  if (type === 'ORGANISED') {
+    rawQuery.createdBy = body?.userInfo?._id;
+  }
+  if (type === 'CURRENT') {
+    rawQuery.startTime = { $lte: currentDateISO };
+    rawQuery.decisionTime = { $gte: currentDateISO };
+  }
+  if (type === 'HISTORY') {
+    rawQuery.decisionTime = { $lt: currentDateISO };
+  }
+
+  try {
+    const events = await getEventsAndPlays(rawQuery, basicQuery as IDBQuery, body?.userInfo?._id);
+
+    return res.status(200).json({
+      message: 'User Events fetched successfully',
       data: events,
       page: query?.page ? Number(query?.page) : 1,
       pageSize: query?.pageSize ? Number(query?.pageSize) : 20,

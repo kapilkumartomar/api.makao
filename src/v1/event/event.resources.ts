@@ -1,7 +1,9 @@
 /* eslint-disable radix */
 /* eslint-disable max-len */
 import mongoose, { Schema } from 'mongoose';
-import { IAnyObject } from '@util/helper';
+import {
+  IAnyObject, IDBQuery, aggregateBasicQueryGenerator, basicQueryGenerator,
+} from '@util/helper';
 import Event, { IEvent } from './event.model';
 
 export async function createEvent(payload: IEvent) {
@@ -68,13 +70,70 @@ export async function updateEvent(
   );
 }
 
-export async function getEvents(query: any) {
-  const page = parseInt(query?.page) || 1; // Default to page 1
-  const pageSize = parseInt(query?.pageSize) || 20; // Default to 20 events per page
-  return Event.find()
-    .sort({ volume: -1 })
-    .skip((page - 1) * pageSize)
-    .limit(pageSize);
+export async function getEvents(query: IDBQuery, basicQuery: IDBQuery) {
+  mongoose.set('debug', true);
+  return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
+}
+
+export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
+  mongoose.set('debug', true);
+  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift(query);
+  return Event.aggregate([
+    {
+      $project: {
+        _id: 1,
+      },
+    },
+    {
+      $lookup: {
+        from: 'plays', // plays collection name
+        localField: '_id',
+        foreignField: 'event',
+        pipeline: [
+          {
+            $match: {
+              playBy: new mongoose.Types.ObjectId(userId),
+            },
+          },
+          {
+            $group: {
+              _id: '$challenge',
+              totalAmount: { $sum: '$amount' },
+            },
+          },
+          {
+            $lookup: {
+              from: 'challenges',
+              localField: '_id',
+              foreignField: '_id',
+              as: 'challenge',
+            },
+          },
+        ],
+        as: 'plays',
+      },
+    },
+    {
+      $match: {
+        plays: { $exists: true, $ne: [] }, // Filter events with non-empty plays array
+      },
+    },
+  ]);
+  // return Play.aggregate([
+  //   {
+  //     $match: {
+  //       playBy: new mongoose.Types.ObjectId(userId),
+  //     },
+  //   },
+  //   {
+  //     $group: {
+  //       _id: '$challenge',
+  //       totalAmount: { $sum: '$amount' },
+  //     },
+  //   },
+
+  // ])
 }
 
 export async function getEvent(_id: string, userId: string) {

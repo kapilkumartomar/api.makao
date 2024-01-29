@@ -34,7 +34,6 @@ export async function handleCreateChallenge(req: Request, res: Response) {
     // caclulated the fee
     const organiserFee = eventVolume * body?.fees ? body?.fees / 100 : 0;
     const fees = (eventVolume * makaoPlatformFeePercentage) + organiserFee;
-    console.log('fees', fees);
 
     const updateEventPayload: any = { volume: eventVolume };
     // increasing the count only if not a player already
@@ -49,8 +48,6 @@ play?.challenge as any,
     );
 
     const [updatedChallenge, updatedEvent] = await Promise.all([updatedChallengePromise, updatedEventPromise]);
-
-    console.log('vlaue', eventVolume, challengeVolume, updatedChallenge, updatedEvent);
 
     return res.status(200).json({
       message: 'Play created successfully',
