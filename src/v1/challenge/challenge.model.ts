@@ -1,14 +1,15 @@
 import mongoose, { Schema, Types } from 'mongoose';
 
 export interface IChallenge {
-    title: string;
-    logic: string;
-    status?: boolean,
-    odd?: Number
-    event: Types.ObjectId;
-    createdBy: Types.ObjectId;
-    createdAt: Date
-    updatedAt: Date
+  title: string;
+  logic: string;
+  status?: boolean,
+  playStatus?: 'WIN' | 'LOSS' | 'CANCEL' | 'DEFAULT'
+  odd?: Number
+  event: Types.ObjectId;
+  createdBy: Types.ObjectId;
+  createdAt: Date
+  updatedAt: Date
 }
 
 const challengeSchema = new Schema<IChallenge>({
@@ -23,6 +24,11 @@ const challengeSchema = new Schema<IChallenge>({
   status: {
     type: Boolean,
     default: true,
+  },
+  playStatus: {
+    type: String,
+    enum: ['WIN', 'LOSS', 'CANCEL', 'DEFAULT'],
+    default: 'DEFAULT',
   },
   odd: {
     type: Number,

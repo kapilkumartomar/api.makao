@@ -83,6 +83,12 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
     {
       $project: {
         _id: 1,
+        name: 1,
+        img: 1,
+        fees: 1,
+        volume: 1,
+        playerCount: 1,
+        createdAt: 1,
       },
     },
     {
@@ -100,6 +106,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
             $group: {
               _id: '$challenge',
               totalAmount: { $sum: '$amount' },
+              play: { $first: '$_id' },
             },
           },
           {
@@ -107,11 +114,22 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
               from: 'challenges',
               localField: '_id',
               foreignField: '_id',
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    logic: 1,
+                    title: 1,
+                    status: 1,
+                    odd: 1,
+                  },
+                },
+              ],
               as: 'challenge',
             },
           },
         ],
-        as: 'plays',
+        as: 'plays', // because when we are grouping by $challenges, and looking up for it, it's strucutre like challenge
       },
     },
     {
