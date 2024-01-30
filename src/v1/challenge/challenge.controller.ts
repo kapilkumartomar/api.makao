@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 
 import { wentWrong } from '@util/helper';
 import mongoose from 'mongoose';
+import { updateUsersBulkwrite } from '@user/user.resources';
 import { createChallenge, updateChallenge } from './challenge.resources';
 import { findPlays } from '../play/play.resources';
 import { findEventById } from '../event/event.resources';
@@ -33,13 +34,22 @@ export async function handleChallengeDecision(req: Request, res: Response) {
     mongoose.set('debug', true);
     const { body, params: { _id } } = req;
     const { playStatus } = body ?? {};
-    const challenge:any = await updateChallenge(_id, { playStatus });
+    const challenge: any = await updateChallenge(_id, { playStatus });
     const findChallenges = await findPlays({ challenge: _id }, { _id: 1, playBy: 1, amount: 1 });
     const findEvent = await findEventById(challenge?.event);
 
+    const balanceUpdate: any = findChallenges.map((val) => ({
+      updateOne: {
+        filter: { _id: val?.playBy },
+        update: { $inc: { balance: val?.amount } },
+      },
+    }));
+
+    const bulkUpdate = await updateUsersBulkwrite(balanceUpdate);
+
     // const updateUserBallance = await
 
-    console.log('challel', findChallenges, challenge, findEvent);
+    console.log('challel', findChallenges, challenge, findEvent, bulkUpdate);
 
     // If everything is successful, commit the transaction
     await session.commitTransaction();

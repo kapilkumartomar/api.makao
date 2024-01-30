@@ -143,9 +143,7 @@ export async function handleGetUserEvents(req: Request, res: Response) {
   const { type, ...basicQuery } = query ?? {};
   const currentDateISO = new Date().toISOString();
   const rawQuery: IDBQuery = {};
-  if (type === 'ORGANISED') {
-    rawQuery.createdBy = body?.userInfo?._id;
-  }
+
   if (type === 'CURRENT') {
     rawQuery.startTime = { $lte: currentDateISO };
     rawQuery.decisionTime = { $gte: currentDateISO };
@@ -155,7 +153,7 @@ export async function handleGetUserEvents(req: Request, res: Response) {
   }
 
   try {
-    const events = await getEventsAndPlays(rawQuery, basicQuery as IDBQuery, body?.userInfo?._id);
+    const events = await getEventsAndPlays({ $match: rawQuery }, basicQuery as IDBQuery, body?.userInfo?._id);
 
     return res.status(200).json({
       message: 'User Events fetched successfully',

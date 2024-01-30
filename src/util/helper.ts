@@ -1,3 +1,5 @@
+import { FilterQuery, UpdateQuery } from 'mongoose';
+
 export const wentWrong = 'Something went wrong! Please try again';
 export const makaoPlatformFeePercentage = 2.5 / 100; // this value is in percentage
 
@@ -45,4 +47,12 @@ export function aggregateBasicQueryGenerator(query: IDBQuery) {
 
 export interface IAnyObject {
   [key: string]: any;
+}
+
+export interface BulkWriteOperation {
+  updateOne: {
+    filter: FilterQuery<IAnyObject>;
+    update: UpdateQuery<IAnyObject> | Partial<IAnyObject>;
+    options?: any;
+  };
 }

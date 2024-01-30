@@ -1,3 +1,4 @@
+import { BulkWriteOperation } from '@util/helper';
 import User from './user.model';
 
 export async function findUser(payload: { email: string }) {
@@ -16,4 +17,8 @@ export async function findUsers(payload: { email: string }) {
 export async function updateUsers(payload: { email: string }) {
   const { email } = payload;
   return User.find({ email: { $regex: new RegExp(email, 'i') } }, { _id: 1, email: 1 }).limit(30);
+}
+
+export async function updateUsersBulkwrite(update: BulkWriteOperation[]) {
+  return User.bulkWrite(update as any[]);
 }

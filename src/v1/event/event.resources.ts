@@ -80,6 +80,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
   if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift(query);
   return Event.aggregate([
+    ...aggregateQuery,
     {
       $project: {
         _id: 1,
