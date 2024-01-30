@@ -31,25 +31,29 @@ export async function handleChallengeDecision(req: Request, res: Response) {
   session.startTransaction();
 
   try {
-    mongoose.set('debug', true);
     const { body, params: { _id } } = req;
     const { playStatus } = body ?? {};
-    const challenge: any = await updateChallenge(_id, { playStatus });
-    const findChallenges = await findPlays({ challenge: _id }, { _id: 1, playBy: 1, amount: 1 });
-    const findEvent = await findEventById(challenge?.event);
 
+    const challengePromise: any = updateChallenge(_id, { playStatus });
+    const findChallengesPromise = findPlays({ challenge: _id }, { _id: 1, playBy: 1, amount: 1 });
+    const [challenge, findChallenges] = await Promise.all([
+      challengePromise,
+      findChallengesPromise]);
+
+    await findEventById(challenge?.event);
+
+    // updating the Users's balance and claims
     const balanceUpdate: any = findChallenges.map((val) => ({
       updateOne: {
         filter: { _id: val?.playBy },
-        update: { $inc: { balance: val?.amount } },
+        update: {
+          $inc: { balance: val?.amount },
+          $push: { claims: { amount: val?.amount, challenge: val?._id } },
+        },
       },
     }));
 
-    const bulkUpdate = await updateUsersBulkwrite(balanceUpdate);
-
-    // const updateUserBallance = await
-
-    console.log('challel', findChallenges, challenge, findEvent, bulkUpdate);
+    await updateUsersBulkwrite(balanceUpdate);
 
     // If everything is successful, commit the transaction
     await session.commitTransaction();

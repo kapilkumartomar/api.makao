@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import claimsSchema from './claims.model';
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -14,6 +15,7 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  claims: [claimsSchema],
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields
 });
