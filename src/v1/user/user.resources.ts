@@ -12,3 +12,8 @@ export async function findUsers(payload: { email: string }) {
   const { email } = payload;
   return User.find({ email: { $regex: new RegExp(email, 'i') } }, { _id: 1, email: 1 }).limit(30);
 }
+
+export async function updateUsers(payload: { email: string }) {
+  const { email } = payload;
+  return User.find({ email: { $regex: new RegExp(email, 'i') } }, { _id: 1, email: 1 }).limit(30);
+}

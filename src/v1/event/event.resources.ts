@@ -121,6 +121,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
                     logic: 1,
                     title: 1,
                     status: 1,
+                    playStatus: 1,
                     odd: 1,
                   },
                 },
@@ -202,4 +203,8 @@ export async function getEvent(_id: string, userId: string) {
       },
     },
   ]);
+}
+
+export async function findEventById(_id: string) {
+  return Event.findById(_id);
 }

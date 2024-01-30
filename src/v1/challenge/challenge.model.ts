@@ -1,10 +1,11 @@
 import mongoose, { Schema, Types } from 'mongoose';
 
+export type IPlayStatus = 'WIN' | 'LOSS' | 'CANCEL' | 'DEFAULT'
 export interface IChallenge {
   title: string;
   logic: string;
   status?: boolean,
-  playStatus?: 'WIN' | 'LOSS' | 'CANCEL' | 'DEFAULT'
+  playStatus?: IPlayStatus
   odd?: Number
   event: Types.ObjectId;
   createdBy: Types.ObjectId;
