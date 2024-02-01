@@ -1,4 +1,4 @@
-import { BulkWriteOperation } from '@util/helper';
+import { BulkWriteOperation, IAnyObject } from '@util/helper';
 import User from './user.model';
 
 export async function findUser(payload: { email: string }) {
@@ -21,4 +21,9 @@ export async function updateUsers(payload: { email: string }) {
 
 export async function updateUsersBulkwrite(update: BulkWriteOperation[]) {
   return User.bulkWrite(update as any[]);
+}
+
+export async function findOneAndUpdateUser(_id: string, data: any, optionsPayload?: IAnyObject) {
+  const options: IAnyObject = { new: true, ...optionsPayload } ?? { new: true };
+  return User.findByIdAndUpdate(_id, data, options);
 }

@@ -3,7 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 import { wentWrong } from '@util/helper';
-import { createUser, findUser, findUsers } from './user.resources';
+import {
+  createUser, findOneAndUpdateUser, findUser, findUsers,
+} from './user.resources';
 
 const BCRYPT_SALT = 10;
 export async function handleUserSignIn(req: Request, res: Response) {
@@ -77,6 +79,22 @@ export async function handleUsersSearch(req: Request, res: Response) {
 
     return res.status(200).json({
       message: 'Users found successfully',
+      data: query,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleUserUpdate(req: Request, res: Response) {
+  try {
+    const { body } = req;
+    const query: any = await findOneAndUpdateUser(body?.userInfo?._id, body);
+
+    return res.status(200).json({
+      message: 'User updated successfully',
       data: query,
     });
   } catch (ex: any) {

@@ -115,12 +115,13 @@ export async function handleUpdateEvent(req: Request, res: Response) {
 
 export async function handleGetEvents(req: Request, res: Response) {
   const { query, body } = req;
-  const { type, ...basicQuery } = query ?? {};
+  const { type, categoryId, ...basicQuery } = query ?? {};
 
   const rawQuery: IDBQuery = {};
   if (type === 'ORGANISED') {
     rawQuery.createdBy = body?.userInfo?._id;
   }
+  if (categoryId) rawQuery.category = categoryId;
 
   try {
     const events = await getEvents(rawQuery, basicQuery as IDBQuery);

@@ -32,7 +32,7 @@ export async function handleCreateChallenge(req: Request, res: Response) {
     const challengeVolume = Array.isArray(challengeVolumeRes) ? challengeVolumeRes[0]?.challengeVolume : 0;
 
     // caclulated the fee
-    const organiserFee = eventVolume * body?.fees ? body?.fees / 100 : 0;
+    const organiserFee = eventVolume * (body?.fees ? body?.fees / 100 : 0);
     const fees = (eventVolume * makaoPlatformFeePercentage) + organiserFee;
 
     const updateEventPayload: any = { volume: eventVolume };
@@ -42,9 +42,9 @@ export async function handleCreateChallenge(req: Request, res: Response) {
     // updating the respective
     const updatedEventPromise = updateEvent(play?.event as any, updateEventPayload, { select: '_id volume playersCount' });
     const updatedChallengePromise = updateChallenge(
-play?.challenge as any,
-{ odd: Number(Number((eventVolume - fees) / challengeVolume).toFixed(2)) },
-{ select: '_id odd' },
+      play?.challenge as any,
+      { odd: Number(Number((eventVolume - fees) / challengeVolume).toFixed(2)) },
+      { select: '_id odd' },
     );
 
     const [updatedChallenge, updatedEvent] = await Promise.all([updatedChallengePromise, updatedEventPromise]);

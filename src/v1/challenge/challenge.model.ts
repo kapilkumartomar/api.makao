@@ -1,6 +1,6 @@
 import mongoose, { Schema, Types } from 'mongoose';
 
-export type IPlayStatus = 'WIN' | 'LOSS' | 'CANCEL' | 'DEFAULT'
+export type IPlayStatus = 'WIN' | 'LOSS' | 'CANCEL' | 'REFUND' | 'DEFAULT'
 export interface IChallenge {
   title: string;
   logic: string;
@@ -28,7 +28,7 @@ const challengeSchema = new Schema<IChallenge>({
   },
   playStatus: {
     type: String,
-    enum: ['WIN', 'LOSS', 'CANCEL', 'DEFAULT'],
+    enum: ['WIN', 'LOSS', 'CANCEL', 'REFUND', 'DEFAULT'],
     default: 'DEFAULT',
   },
   odd: {
