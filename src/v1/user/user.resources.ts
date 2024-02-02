@@ -1,8 +1,12 @@
 import { BulkWriteOperation, IAnyObject } from '@util/helper';
 import User from './user.model';
 
-export async function findUser(payload: { email: string }) {
-  return User.findOne({ email: payload.email });
+export async function findUser({ email }: { email: string }) {
+  return User.findOne({ email });
+}
+
+export async function findUserById({ _id }: { _id: string }) {
+  return User.findById({ _id });
 }
 
 export async function createUser(payload: { email: string, password: string }) {
