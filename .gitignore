@@ -118,6 +118,7 @@ dist
 
 
 # public
-public/images/
-public/icons/
-public/scripts/
+public/images/*
+public/profile/*
+public/icons/*
+public/scripts/*
