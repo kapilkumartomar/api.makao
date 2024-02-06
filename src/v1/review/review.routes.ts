@@ -10,7 +10,7 @@ import {
 const routes = express.Router();
 
 routes.get('/', auth, handleGetReview);
-routes.get('/:userId/:eventId', auth, handleIsReviewGiven);
+routes.get('/:eventId', auth, handleIsReviewGiven);
 routes.post('/', auth, handlePostReview);
 
 module.exports = routes;

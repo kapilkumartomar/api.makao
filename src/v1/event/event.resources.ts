@@ -86,8 +86,9 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
         img: 1,
         fees: 1,
         volume: 1,
-        playerCount: 1,
+        playersCount: 1,
         createdAt: 1,
+        decisionTakenTime: 1,
       },
     },
     {
@@ -135,6 +136,28 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
     {
       $match: {
         plays: { $exists: true, $ne: [] }, // Filter events with non-empty plays array
+      },
+    },
+    {
+      $lookup: {
+        from: 'reviews',
+        localField: '_id',
+        foreignField: 'eventId',
+        as: 'eventReview',
+        pipeline: [
+          {
+            $group: {
+              _id: null,
+              totalReview: { $sum: 1 },
+              averageReveiw: { $avg: '$review' },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        averageReview: '$eventReview.averageReveiw',
       },
     },
   ]);
@@ -192,8 +215,31 @@ export async function getEvent(_id: string, userId: string) {
       },
     },
     {
+      $lookup: {
+        from: 'reviews',
+        localField: '_id',
+        foreignField: 'eventId',
+        as: 'eventReview',
+        pipeline: [
+          {
+            $match: {
+              eventId: new mongoose.Types.ObjectId(_id),
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalReview: { $sum: 1 },
+              averageReveiw: { $avg: '$review' },
+            },
+          },
+        ],
+      },
+    },
+    {
       $addFields: {
         commentsCount: { $size: '$comments' }, // 'comments' is the array field in the Event schema
+        averageReview: '$eventReview.averageReveiw',
       },
     },
     {

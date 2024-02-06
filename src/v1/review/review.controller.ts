@@ -20,7 +20,9 @@ export async function handleGetReview(req: Request, res: Response) {
 
 export async function handleIsReviewGiven(req: Request, res: Response) {
   try {
-    const review: any = await findIsReviewGiven(req.params);
+    const { eventId } = req.params;
+    const { _id: userId} = req.body.userInfo;
+    const review: any = await findIsReviewGiven(eventId, userId);
     return res.status(200).json({
       message: 'given Review fetched successfully',
       data: review,
