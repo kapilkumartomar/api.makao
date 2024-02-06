@@ -5,7 +5,8 @@ import { auth } from '@config/auth';
 import multer from 'multer';
 import {
   handleUserSignIn, handleUserSignUp, handleUserUpdate, handleUsersSearch,
-  handleGetUser, handleUpdateUserProfile, handleUserAddFriend,
+  handleGetUser, handleUpdateUserProfile, handleUserAddFriend, handleGetUserFriends,
+  handleGetFriendsLeaderboard,
 } from './user.controller';
 import {
   validateEmail,
@@ -23,5 +24,7 @@ routes.patch('/img', upload.fields([{ name: 'img', maxCount: 1 }]), auth, handle
 routes.post('/sign-in', validate([validateEmail, validatePassword]), handleUserSignIn);
 routes.get('/search', handleUsersSearch);
 routes.post('/friend', auth, handleUserAddFriend);
+routes.get('/friends', auth, handleGetUserFriends);
+routes.get('/leaderboard', auth, handleGetFriendsLeaderboard);
 
 module.exports = routes;

@@ -58,12 +58,13 @@ export async function handleChallengeDecision(req: Request, res: Response) {
       challengePromise,
       findChallengesPromise]);
 
-    const event = await updateEvent(challenge?.event, { decisionTakenTime: new Date().toISOString() }, { select: '_id decisionTakenTime' }) as any;
+    const event = await updateEvent(challenge?.event, { decisionTakenTime: new Date().toISOString() }, { select: '_id decisionTakenTime volume fees' }) as any;
 
     // caclulated the fee
-    const organiserFee = event.volume * (body?.fees ? body?.fees / 100 : 0);
+    const organiserFee = event.volume * (event?.fees ? event?.fees / 100 : 0);
     const fees = (event.volume * makaoPlatformFeePercentage) + organiserFee;
     // updating the Users's balance and claims
+    console.log('heloo', fees, organiserFee, findChallenges, event.volume * event?.fees, event?.fees / 100);
     const balanceUpdate: any = findChallenges.map((val) => ({
       updateOne: {
         filter: { _id: val?.playBy },
@@ -74,7 +75,7 @@ export async function handleChallengeDecision(req: Request, res: Response) {
             claims: {
               amount:
                 ((Number(val?.amount) * challenge?.odd) - Number(val?.amount) - fees),
-              challenge: val?._id,
+              challenge: challenge?._id,
             },
           },
         },

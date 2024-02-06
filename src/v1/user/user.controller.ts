@@ -5,7 +5,8 @@ import jwt from 'jsonwebtoken';
 import { wentWrong } from '@util/helper';
 import fs from 'fs/promises';
 import {
-  createUser, findOneAndUpdateUser, findUser, findUserById, findUsers,
+  createUser, findLeaderboard, findOneAndUpdateUser, findUser, findUserById,
+  findUserFriendsDetails, findUsers,
 } from './user.resources';
 
 const BCRYPT_SALT = 10;
@@ -162,6 +163,40 @@ export async function handleUserAddFriend(req: Request, res: Response) {
     return res.status(200).json({
       message: 'User add to friend list successfully',
       data: query,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetUserFriends(req: Request, res: Response) {
+  try {
+    const { body } = req;
+    const query: any = await findUserFriendsDetails(
+      body?.userInfo?._id,
+    );
+
+    return res.status(200).json({
+      message: 'Friend list fetched successfully',
+      data: query?.friends ?? [],
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetFriendsLeaderboard(req: Request, res: Response) {
+  try {
+    const query: any = await findLeaderboard();
+    // body?.userInfo?._id,
+
+    return res.status(200).json({
+      message: 'Friend leaderboard fetched successfully',
+      data: query ?? [],
     });
   } catch (ex: any) {
     return res.status(500).json({

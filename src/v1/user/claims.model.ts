@@ -12,7 +12,7 @@ export interface IClaim {
 export interface ClaimsDocument extends IClaim, Document { }
 
 const claimsSchema = new Schema<ClaimsDocument>({
-  amount: { type: String, required: true },
+  amount: { type: Number, required: true },
   challenge: { type: Schema.Types.ObjectId, required: true },
   status: {
     type: Boolean,

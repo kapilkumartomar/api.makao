@@ -1,6 +1,6 @@
 /* eslint-disable radix */
 /* eslint-disable max-len */
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { ObjectId, Schema } from 'mongoose';
 import {
   IAnyObject, IDBQuery, aggregateBasicQueryGenerator, basicQueryGenerator,
 } from '@util/helper';
@@ -206,4 +206,89 @@ export async function getEvent(_id: string, userId: string) {
 
 export async function findEventById(_id: string) {
   return Event.findById(_id);
+}
+
+export async function getFriendsPlayingEvents(friendsIds: ObjectId[]) {
+  // const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+  return Event.aggregate([
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        img: 1,
+        fees: 1,
+        volume: 1,
+        playerCount: 1,
+        createdAt: 1,
+      },
+    },
+    {
+      $lookup: {
+        from: 'plays', // plays collection name
+        localField: '_id',
+        foreignField: 'event',
+        pipeline: [
+          {
+            $match: {
+              playBy: { $in: friendsIds },
+            },
+          },
+        ],
+        as: 'plays', // because when we are grouping by $challenges, and looking up for it, it's strucutre like challenge
+      },
+    },
+    {
+      $match: {
+        plays: { $exists: true, $ne: [] }, // Filter events with non-empty plays array
+      },
+    },
+    {
+      $project: {
+        plays: 0,
+      },
+    },
+  ]);
+}
+
+export async function findLeaderboard() {
+  mongoose.set('debug', true);
+  return Event.aggregate([
+    {
+      $group: {
+        _id: '$createdBy',
+        totalVolume: { $sum: '$volume' },
+      },
+    },
+    {
+      $sort: { totalVolume: -1 },
+    },
+    {
+      $lookup: {
+        from: 'users',
+        localField: '_id',
+        foreignField: '_id',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              username: 1,
+              img: 1,
+            },
+          },
+        ],
+        as: 'userDetails',
+      },
+    },
+    {
+      $unwind: '$userDetails',
+    },
+    {
+      $project: {
+        _id: '$userDetails._id',
+        username: '$userDetails.username',
+        img: '$userDetails.img',
+        totalVolume: 1,
+      },
+    },
+  ]);
 }

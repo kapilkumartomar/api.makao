@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     get: obfuscate,
   },
-  friends: [Schema.Types.ObjectId],
+  friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields
   toJSON: { getters: true, virtuals: false },

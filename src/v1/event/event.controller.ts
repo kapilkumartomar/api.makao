@@ -3,8 +3,9 @@ import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
 import { IDBQuery, wentWrong } from '@util/helper';
+import { findUserFriends } from '@user/user.resources';
 import {
-  createEvent, createEventComments, getEvent, getEventComments, getEvents, getEventsAndPlays, updateEvent,
+  createEvent, createEventComments, findLeaderboard, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
 import { createChallenges } from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
@@ -181,6 +182,51 @@ export async function handleGetEvent(req: Request, res: Response) {
     return res.status(200).json({
       message: 'Event fetched successfully',
       data: singleEvent,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetFriendsEvents(req: Request, res: Response) {
+  const { body, query } = req;
+  const userId = body?.userInfo?._id;
+
+  try {
+    const friendsData = await findUserFriends(userId);
+
+    const events = await getFriendsPlayingEvents(friendsData?.friends as any);
+
+    return res.status(200).json({
+      message: 'Friends Events fetched successfully',
+      data: events,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetLeaderboard(req: Request, res: Response) {
+  const { query } = req;
+
+  try {
+    // const friendsData = await findUserFriends(userId)
+    // console.log('fried', friendsData)
+
+    // friendsData?.friends as any, query as IDBQuery
+    const events = await findLeaderboard();
+
+    return res.status(200).json({
+      message: 'Leaderboard fetched successfully',
+      data: events,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
     });
   } catch (ex: any) {
     return res.status(500).json({
