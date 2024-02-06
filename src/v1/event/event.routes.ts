@@ -10,7 +10,6 @@ import {
   handleGetEvent,
   handleGetEvents,
   handleGetFriendsEvents,
-  handleGetLeaderboard,
   handleGetUserEvents,
   handleUpdateEvent,
 } from './event.controller';
@@ -43,12 +42,6 @@ routes.get(
   '/friends',
   auth,
   handleGetFriendsEvents,
-);
-
-routes.get(
-  '/leaderboard',
-  auth,
-  handleGetLeaderboard,
 );
 
 routes.get(

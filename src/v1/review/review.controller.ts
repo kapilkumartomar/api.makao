@@ -1,7 +1,7 @@
-import { Request, Response } from "express";
+import { Request, Response } from 'express';
 
-import { wentWrong } from "@util/helper";
-import { findIsReviewGiven, findReview, postReview } from "./review.resources";
+import { wentWrong } from '@util/helper';
+import { findIsReviewGiven, findReview, postReview } from './review.resources';
 
 export async function handleGetReview(req: Request, res: Response) {
   try {
@@ -37,7 +37,7 @@ export async function handlePostReview(req: Request, res: Response) {
     const reviews: any = await postReview(req.body);
 
     return res.status(200).json({
-      message: "Reviews Posted successfully",
+      message: 'Reviews Posted successfully',
       data: reviews,
     });
   } catch (err: any) {

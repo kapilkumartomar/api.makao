@@ -5,7 +5,7 @@ import fs from 'fs/promises';
 import { IDBQuery, wentWrong } from '@util/helper';
 import { findUserFriends } from '@user/user.resources';
 import {
-  createEvent, createEventComments, findLeaderboard, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
+  createEvent, createEventComments, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
 import { createChallenges } from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
@@ -122,7 +122,14 @@ export async function handleGetEvents(req: Request, res: Response) {
   if (type === 'ORGANISED') {
     rawQuery.createdBy = body?.userInfo?._id;
   }
+
   if (categoryId) rawQuery.category = categoryId;
+
+  // If type is not organised, should be future, public
+  if (!type) {
+    rawQuery.endTime = { $gte: new Date().toISOString() };
+    rawQuery.privacy = 'PUBLIC';
+  }
 
   try {
     const events = await getEvents(rawQuery, basicQuery as IDBQuery);
@@ -197,33 +204,10 @@ export async function handleGetFriendsEvents(req: Request, res: Response) {
   try {
     const friendsData = await findUserFriends(userId);
 
-    const events = await getFriendsPlayingEvents(friendsData?.friends as any);
+    const events = await getFriendsPlayingEvents(friendsData?.friends as any, query as IDBQuery);
 
     return res.status(200).json({
       message: 'Friends Events fetched successfully',
-      data: events,
-      page: query?.page ? Number(query?.page) : 1,
-      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
-    });
-  } catch (ex: any) {
-    return res.status(500).json({
-      message: ex?.message ?? wentWrong,
-    });
-  }
-}
-
-export async function handleGetLeaderboard(req: Request, res: Response) {
-  const { query } = req;
-
-  try {
-    // const friendsData = await findUserFriends(userId)
-    // console.log('fried', friendsData)
-
-    // friendsData?.friends as any, query as IDBQuery
-    const events = await findLeaderboard();
-
-    return res.status(200).json({
-      message: 'Leaderboard fetched successfully',
       data: events,
       page: query?.page ? Number(query?.page) : 1,
       pageSize: query?.pageSize ? Number(query?.pageSize) : 20,

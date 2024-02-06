@@ -4,7 +4,7 @@ import { auth } from '@config/auth';
 import {
   handleGetReview,
   handleIsReviewGiven,
-  handlePostReview
+  handlePostReview,
 } from './review.controller';
 
 const routes = express.Router();

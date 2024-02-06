@@ -1,4 +1,4 @@
-import Review from "./review.model";
+import Review from './review.model';
 
 export async function findReview(query: { reviewed?: Number }) {
   return Review.find(query);

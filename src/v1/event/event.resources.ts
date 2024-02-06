@@ -86,7 +86,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
         img: 1,
         fees: 1,
         volume: 1,
-        playerCount: 1,
+        playersCount: 1,
         createdAt: 1,
       },
     },
@@ -192,6 +192,21 @@ export async function getEvent(_id: string, userId: string) {
       },
     },
     {
+      $lookup: {
+        from: 'users', // challenges collection name
+        localField: 'createdBy',
+        foreignField: '_id',
+        as: 'user',
+        pipeline: [
+          {
+            $project: {
+              _id: 0,
+              username: 1,
+            },
+          }],
+      },
+    },
+    {
       $addFields: {
         commentsCount: { $size: '$comments' }, // 'comments' is the array field in the Event schema
       },
@@ -208,17 +223,17 @@ export async function findEventById(_id: string) {
   return Event.findById(_id);
 }
 
-export async function getFriendsPlayingEvents(friendsIds: ObjectId[]) {
-  // const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery: IDBQuery) {
+  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
   return Event.aggregate([
     {
       $project: {
         _id: 1,
         name: 1,
-        img: 1,
+        img: { $concat: [process.env.API_URL, '$img'] },
         fees: 1,
         volume: 1,
-        playerCount: 1,
+        playersCount: 1,
         createdAt: 1,
       },
     },
@@ -247,48 +262,7 @@ export async function getFriendsPlayingEvents(friendsIds: ObjectId[]) {
         plays: 0,
       },
     },
-  ]);
-}
-
-export async function findLeaderboard() {
-  mongoose.set('debug', true);
-  return Event.aggregate([
-    {
-      $group: {
-        _id: '$createdBy',
-        totalVolume: { $sum: '$volume' },
-      },
-    },
-    {
-      $sort: { totalVolume: -1 },
-    },
-    {
-      $lookup: {
-        from: 'users',
-        localField: '_id',
-        foreignField: '_id',
-        pipeline: [
-          {
-            $project: {
-              _id: 1,
-              username: 1,
-              img: 1,
-            },
-          },
-        ],
-        as: 'userDetails',
-      },
-    },
-    {
-      $unwind: '$userDetails',
-    },
-    {
-      $project: {
-        _id: '$userDetails._id',
-        username: '$userDetails.username',
-        img: '$userDetails.img',
-        totalVolume: 1,
-      },
-    },
+    // pagination
+    ...aggregateQuery,
   ]);
 }

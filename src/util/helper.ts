@@ -56,3 +56,29 @@ export interface BulkWriteOperation {
     options?: any;
   };
 }
+
+export function getStartDate(interval: 'WEEK' | 'MONTH' | '3MONTH' | 'YEAR', type?: 'date'): string | Date {
+  const currentDate = new Date();
+
+  switch (interval) {
+    case 'WEEK':
+      currentDate.setDate(currentDate.getDate() - 7);
+      break;
+    case 'MONTH':
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      break;
+    case '3MONTH':
+      currentDate.setMonth(currentDate.getMonth() - 3);
+      break;
+    case 'YEAR':
+      currentDate.setFullYear(currentDate.getFullYear() - 1);
+      break;
+    default: /* eslint-disable-next-line no-unused-expressions */
+      currentDate;
+    // 'DAY' is the default case
+  }
+
+  if (type === 'date') return currentDate;
+
+  return currentDate.toISOString();
+}

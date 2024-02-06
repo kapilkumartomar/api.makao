@@ -2,11 +2,11 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-import { wentWrong } from '@util/helper';
+import { IDBQuery, getStartDate, wentWrong } from '@util/helper';
 import fs from 'fs/promises';
 import {
-  createUser, findLeaderboard, findOneAndUpdateUser, findUser, findUserById,
-  findUserFriendsDetails, findUsers,
+  createUser, findFriendsLeaderboard, findOrganisersLeaderboard, findOneAndUpdateUser,
+  findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard,
 } from './user.resources';
 
 const BCRYPT_SALT = 10;
@@ -191,12 +191,121 @@ export async function handleGetUserFriends(req: Request, res: Response) {
 
 export async function handleGetFriendsLeaderboard(req: Request, res: Response) {
   try {
-    const query: any = await findLeaderboard();
-    // body?.userInfo?._id,
+    const { query } = req;
+    const { type, ...basicQuery } = query ?? {};
+
+    let startTime: any = '';
+
+    if (type === 'WEEK') {
+      startTime = getStartDate('WEEK', 'date');
+    }
+    if (type === 'MONTH') {
+      startTime = getStartDate('MONTH', 'date');
+    }
+
+    if (type === '3MONTH') {
+      startTime = getStartDate('3MONTH', 'date');
+    }
+
+    if (type === 'YEAR') {
+      startTime = getStartDate('YEAR', 'date');
+    }
+
+    const friendsLeaderboard: any = await findFriendsLeaderboard(type ? {
+      $match: {
+        // Possibly claims were the last updated
+        'claims.createdAt': { $gte: startTime },
+      },
+    } : {}, basicQuery as IDBQuery);
 
     return res.status(200).json({
       message: 'Friend leaderboard fetched successfully',
-      data: query ?? [],
+      data: friendsLeaderboard ?? [],
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetOrganisersLeaderboard(req: Request, res: Response) {
+  const { query } = req;
+  const { type, ...basicQuery } = query ?? {};
+
+  try {
+    // const currentDateISO = new Date().toISOString();
+    const timeQuery: IDBQuery = {};
+
+    if (type === 'WEEK') {
+      timeQuery.decisionTime = { $gte: getStartDate('WEEK') };
+    }
+    if (type === 'MONTH') {
+      timeQuery.decisionTime = { $gte: getStartDate('MONTH') };
+    }
+
+    if (type === '3MONTH') {
+      timeQuery.decisionTime = { $gte: getStartDate('3MONTH') };
+    }
+
+    if (type === 'YEAR') {
+      timeQuery.decisionTime = { $gte: getStartDate('YEAR') };
+    }
+
+    const events = await findOrganisersLeaderboard(
+      type ? { $match: timeQuery } as IDBQuery : {},
+      basicQuery as IDBQuery,
+    );
+
+    return res.status(200).json({
+      message: 'Leaderboard fetched successfully',
+      data: events,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetLeaderboard(req: Request, res: Response) {
+  try {
+    const { query } = req;
+    const { type, ...basicQuery } = query ?? {};
+
+    let startTime: any = '';
+
+    if (type === 'WEEK') {
+      startTime = getStartDate('WEEK', 'date');
+    }
+    if (type === 'MONTH') {
+      startTime = getStartDate('MONTH', 'date');
+    }
+
+    if (type === '3MONTH') {
+      startTime = getStartDate('3MONTH', 'date');
+    }
+
+    if (type === 'YEAR') {
+      startTime = getStartDate('YEAR', 'date');
+    }
+
+    const playersLeaderboard: any = await findLeaderboard(type ? {
+      $match: {
+        // Possibly claims were the last updated
+        'claims.createdAt': { $gte: startTime },
+      },
+    } : {}, basicQuery as IDBQuery);
+
+    return res.status(200).json({
+      message: 'Players leaderboard fetched successfully',
+      data: playersLeaderboard ?? [],
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
     });
   } catch (ex: any) {
     return res.status(500).json({

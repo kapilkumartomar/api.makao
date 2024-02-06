@@ -7,6 +7,8 @@ import {
   handleUserSignIn, handleUserSignUp, handleUserUpdate, handleUsersSearch,
   handleGetUser, handleUpdateUserProfile, handleUserAddFriend, handleGetUserFriends,
   handleGetFriendsLeaderboard,
+  handleGetOrganisersLeaderboard,
+  handleGetLeaderboard,
 } from './user.controller';
 import {
   validateEmail,
@@ -25,6 +27,8 @@ routes.post('/sign-in', validate([validateEmail, validatePassword]), handleUserS
 routes.get('/search', handleUsersSearch);
 routes.post('/friend', auth, handleUserAddFriend);
 routes.get('/friends', auth, handleGetUserFriends);
-routes.get('/leaderboard', auth, handleGetFriendsLeaderboard);
+routes.get('/leaderboard', auth, handleGetLeaderboard);
+routes.get('/leaderboard/organisers', auth, handleGetOrganisersLeaderboard);
+routes.get('/leaderboard/friends', auth, handleGetFriendsLeaderboard);
 
 module.exports = routes;
