@@ -13,7 +13,7 @@ export async function findUserById({ _id }: { _id: string }) {
   return User.findById({ _id });
 }
 
-export async function createUser(payload: { email: string, password: string }) {
+export async function createUser(payload: { email: string, password: string, username?: string }) {
   return User.create(payload);
 }
 

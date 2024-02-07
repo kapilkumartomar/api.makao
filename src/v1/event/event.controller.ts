@@ -1,5 +1,7 @@
 /* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
+/* eslint-disable no-console */
+
 import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
@@ -35,7 +37,12 @@ export async function handleCreateEvent(req: Request, res: Response) {
 
     const reqChallenges = JSON.parse(body.challenges);
     delete body.challenges;
-    const event = await createEvent({ ...body, img: imgName, createdBy: body.userInfo?._id });
+    const eventPromise = createEvent({ ...body, img: imgName, createdBy: body.userInfo?._id });
+    const userFriendsPromise = findUserFriends(body.userInfo?._id);
+    const [event, userFriends] = await Promise.all([eventPromise, userFriendsPromise]);
+
+    console.log('user fie', userFriends);
+
     const challenges = await createChallenges(reqChallenges.map((val: IChallenge) => ({ ...val, createdBy: body.userInfo?._id, event: event?._id })));
 
     await session.commitTransaction();

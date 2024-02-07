@@ -4,7 +4,9 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-import { IDBQuery, getStartDate, wentWrong } from '@util/helper';
+import {
+  IDBQuery, generateUniqueString, getStartDate, wentWrong,
+} from '@util/helper';
 import fs from 'fs/promises';
 import {
   createUser, findFriendsLeaderboard, findOrganisersLeaderboard, findOneAndUpdateUser,
@@ -63,7 +65,7 @@ export async function handleUserSignUp(req: Request, res: Response) {
 
     const hash = bcrypt.hashSync(password, BCRYPT_SALT);
 
-    const user = await createUser({ email, password: hash });
+    const user = await createUser({ email, password: hash, username: generateUniqueString(6) });
 
     const token = jwt.sign({ _id: user._id }, process.env.JWT_STRING as string, {
       expiresIn: '30d',
