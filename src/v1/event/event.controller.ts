@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+/* eslint-disable prefer-destructuring */
 import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
@@ -12,8 +13,8 @@ import { IChallenge } from '../challenge/challenge.model';
 import { IEvent } from './event.model';
 
 let dirname = __dirname;
-// eslint-disable-next-line prefer-destructuring
-dirname = dirname.split('src')[0];
+dirname = dirname.split('dist')[0];
+if (!dirname[1]) dirname = dirname.split('src')[0];
 
 export async function handleCreateEvent(req: Request, res: Response) {
   try {
@@ -182,7 +183,7 @@ export async function handleGetEvent(req: Request, res: Response) {
 
   try {
     const events = await getEvent(params?._id, body?.userInfo?._id);
-    
+
     const singleEvent = Array.isArray(events) ? events[0] as IEvent : {} as IEvent;
     const { img } = singleEvent;
     singleEvent.img = `${process.env.API_URL}images/${img}`;

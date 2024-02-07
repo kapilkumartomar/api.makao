@@ -1,3 +1,5 @@
+/* eslint-disable prefer-destructuring */
+
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -11,8 +13,8 @@ import {
 
 const BCRYPT_SALT = 10;
 let dirname = __dirname;
-// eslint-disable-next-line prefer-destructuring
-dirname = dirname.split('src')[0];
+dirname = dirname.split('dist')[0];
+if (!dirname[1]) dirname = dirname.split('src')[0];
 
 export async function handleUserSignIn(req: Request, res: Response) {
   try {
