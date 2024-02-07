@@ -225,6 +225,7 @@ export async function getEvent(_id: string, userId: string) {
               _id: 0,
               username: 1,
               friends: 1,
+              balance: 1,
             },
           },
 
