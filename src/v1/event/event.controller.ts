@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 
 import { IDBQuery, wentWrong } from '@util/helper';
 import { findUserFriends } from '@user/user.resources';
+import mongoose from 'mongoose';
 import {
   createEvent, createEventComments, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
@@ -17,6 +18,9 @@ dirname = dirname.split('dist')[0];
 if (!dirname[1]) dirname = dirname.split('src')[0];
 
 export async function handleCreateEvent(req: Request, res: Response) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { files, body } = req as any;
     const imageFile: any = files?.img[0];
@@ -34,14 +38,18 @@ export async function handleCreateEvent(req: Request, res: Response) {
     const event = await createEvent({ ...body, img: imgName, createdBy: body.userInfo?._id });
     const challenges = await createChallenges(reqChallenges.map((val: IChallenge) => ({ ...val, createdBy: body.userInfo?._id, event: event?._id })));
 
+    await session.commitTransaction();
     return res.status(200).json({
       message: 'Event created successfully',
       data: { ...event.toJSON(), challenges },
     });
   } catch (ex: any) {
+    await session.abortTransaction();
     return res.status(500).json({
       message: ex?.message ?? wentWrong,
     });
+  } finally {
+    session.endSession();
   }
 }
 

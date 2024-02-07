@@ -2,15 +2,11 @@ import express from 'express';
 
 import { auth } from '@config/auth';
 import {
-  handleCreatePlay,
-} from './play.controller';
+  handleGetNotifications,
+} from './notification.controller';
 
 const routes = express.Router();
 
-routes.post(
-  '/',
-  auth,
-  handleCreatePlay,
-);
+routes.get('/', auth, handleGetNotifications);
 
 module.exports = routes;
