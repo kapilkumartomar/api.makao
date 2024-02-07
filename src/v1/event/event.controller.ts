@@ -3,8 +3,9 @@ import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
 import { IDBQuery, wentWrong } from '@util/helper';
+import { findUserFriends } from '@user/user.resources';
 import {
-  createEvent, createEventComments, getEvent, getEventComments, getEvents, getEventsAndPlays, updateEvent,
+  createEvent, createEventComments, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
 import { createChallenges } from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
@@ -115,11 +116,19 @@ export async function handleUpdateEvent(req: Request, res: Response) {
 
 export async function handleGetEvents(req: Request, res: Response) {
   const { query, body } = req;
-  const { type, ...basicQuery } = query ?? {};
+  const { type, categoryId, ...basicQuery } = query ?? {};
 
   const rawQuery: IDBQuery = {};
   if (type === 'ORGANISED') {
     rawQuery.createdBy = body?.userInfo?._id;
+  }
+
+  if (categoryId) rawQuery.category = categoryId;
+
+  // If type is not organised, should be future, public
+  if (!type) {
+    rawQuery.endTime = { $gte: new Date().toISOString() };
+    rawQuery.privacy = 'PUBLIC';
   }
 
   try {
@@ -143,9 +152,7 @@ export async function handleGetUserEvents(req: Request, res: Response) {
   const { type, ...basicQuery } = query ?? {};
   const currentDateISO = new Date().toISOString();
   const rawQuery: IDBQuery = {};
-  if (type === 'ORGANISED') {
-    rawQuery.createdBy = body?.userInfo?._id;
-  }
+
   if (type === 'CURRENT') {
     rawQuery.startTime = { $lte: currentDateISO };
     rawQuery.decisionTime = { $gte: currentDateISO };
@@ -155,7 +162,7 @@ export async function handleGetUserEvents(req: Request, res: Response) {
   }
 
   try {
-    const events = await getEventsAndPlays(rawQuery, basicQuery as IDBQuery, body?.userInfo?._id);
+    const events = await getEventsAndPlays({ $match: rawQuery }, basicQuery as IDBQuery, body?.userInfo?._id);
 
     return res.status(200).json({
       message: 'User Events fetched successfully',
@@ -182,6 +189,28 @@ export async function handleGetEvent(req: Request, res: Response) {
     return res.status(200).json({
       message: 'Event fetched successfully',
       data: singleEvent,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetFriendsEvents(req: Request, res: Response) {
+  const { body, query } = req;
+  const userId = body?.userInfo?._id;
+
+  try {
+    const friendsData = await findUserFriends(userId);
+
+    const events = await getFriendsPlayingEvents(friendsData?.friends as any, query as IDBQuery);
+
+    return res.status(200).json({
+      message: 'Friends Events fetched successfully',
+      data: events,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
     });
   } catch (ex: any) {
     return res.status(500).json({

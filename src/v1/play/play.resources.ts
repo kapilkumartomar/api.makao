@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { IAnyObject } from '@util/helper';
 import Play, { IPlay } from './play.model';
 
 export async function createPlay(payload: IPlay) {
@@ -37,6 +38,15 @@ export async function getChallengeVolume({ challengeId }: { challengeId: string 
   ]);
 }
 
-export async function findPlay(query: { playBy?: string, event?: string }) {
+export async function findPlay(query: { playBy?: string, event?: string, challenge?: string }) {
   return Play.findOne(query);
+}
+
+export async function findPlays(
+  query: { playBy?: string, event?: string, challenge?: string },
+  projectionOptions?: IAnyObject,
+) {
+  const projection: IAnyObject = projectionOptions ?? {};
+
+  return Play.find(query, projection);
 }

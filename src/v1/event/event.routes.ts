@@ -9,6 +9,7 @@ import {
   handleGetComments,
   handleGetEvent,
   handleGetEvents,
+  handleGetFriendsEvents,
   handleGetUserEvents,
   handleUpdateEvent,
 } from './event.controller';
@@ -35,6 +36,12 @@ routes.get(
   '/user',
   auth,
   handleGetUserEvents,
+);
+
+routes.get(
+  '/friends',
+  auth,
+  handleGetFriendsEvents,
 );
 
 routes.get(

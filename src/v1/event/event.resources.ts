@@ -1,6 +1,6 @@
 /* eslint-disable radix */
 /* eslint-disable max-len */
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { ObjectId, Schema } from 'mongoose';
 import {
   IAnyObject, IDBQuery, aggregateBasicQueryGenerator, basicQueryGenerator,
 } from '@util/helper';
@@ -58,7 +58,7 @@ export async function getEventComments(eventId: string, query: any) {
 
 export async function updateEvent(
   eventId: Schema.Types.ObjectId,
-  update: { videoLink?: string, volume?: number, '$inc': IAnyObject },
+  update: { videoLink?: string, volume?: number, '$inc'?: IAnyObject, decisionTakenTime?: string },
   optionsPayload?: IAnyObject,
 ) {
   const options: IAnyObject = { new: true, ...optionsPayload } ?? { new: true };
@@ -71,18 +71,24 @@ export async function updateEvent(
 }
 
 export async function getEvents(query: IDBQuery, basicQuery: IDBQuery) {
-  mongoose.set('debug', true);
   return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
 }
 
 export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
-  mongoose.set('debug', true);
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
   if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift(query);
   return Event.aggregate([
+    ...aggregateQuery,
     {
       $project: {
         _id: 1,
+        name: 1,
+        img: 1,
+        fees: 1,
+        volume: 1,
+        playersCount: 1,
+        createdAt: 1,
+        decisionTakenTime: 1,
       },
     },
     {
@@ -100,6 +106,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
             $group: {
               _id: '$challenge',
               totalAmount: { $sum: '$amount' },
+              play: { $first: '$_id' },
             },
           },
           {
@@ -107,16 +114,50 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
               from: 'challenges',
               localField: '_id',
               foreignField: '_id',
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    logic: 1,
+                    title: 1,
+                    status: 1,
+                    playStatus: 1,
+                    odd: 1,
+                  },
+                },
+              ],
               as: 'challenge',
             },
           },
         ],
-        as: 'plays',
+        as: 'plays', // because when we are grouping by $challenges, and looking up for it, it's strucutre like challenge
       },
     },
     {
       $match: {
         plays: { $exists: true, $ne: [] }, // Filter events with non-empty plays array
+      },
+    },
+    {
+      $lookup: {
+        from: 'reviews',
+        localField: '_id',
+        foreignField: 'eventId',
+        as: 'eventReview',
+        pipeline: [
+          {
+            $group: {
+              _id: null,
+              totalReview: { $sum: 1 },
+              averageReveiw: { $avg: '$review' },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        averageReview: '$eventReview.averageReveiw',
       },
     },
   ]);
@@ -174,8 +215,46 @@ export async function getEvent(_id: string, userId: string) {
       },
     },
     {
+      $lookup: {
+        from: 'users', // challenges collection name
+        localField: 'createdBy',
+        foreignField: '_id',
+        as: 'user',
+        pipeline: [
+          {
+            $project: {
+              _id: 0,
+              username: 1,
+            },
+          }],
+      },
+    },
+    {
+      $lookup: {
+        from: 'reviews',
+        localField: '_id',
+        foreignField: 'eventId',
+        as: 'eventReview',
+        pipeline: [
+          {
+            $match: {
+              eventId: new mongoose.Types.ObjectId(_id),
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalReview: { $sum: 1 },
+              averageReveiw: { $avg: '$review' },
+            },
+          },
+        ],
+      }
+    },
+    {
       $addFields: {
         commentsCount: { $size: '$comments' }, // 'comments' is the array field in the Event schema
+        averageReview: '$eventReview.averageReveiw',
       },
     },
     {
@@ -183,5 +262,53 @@ export async function getEvent(_id: string, userId: string) {
         comments: 0,
       },
     },
+  ]);
+}
+
+export async function findEventById(_id: string) {
+  return Event.findById(_id);
+}
+
+export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery: IDBQuery) {
+  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+  return Event.aggregate([
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        img: { $concat: [process.env.API_URL, '$img'] },
+        fees: 1,
+        volume: 1,
+        playersCount: 1,
+        createdAt: 1,
+      },
+    },
+    {
+      $lookup: {
+        from: 'plays', // plays collection name
+        localField: '_id',
+        foreignField: 'event',
+        pipeline: [
+          {
+            $match: {
+              playBy: { $in: friendsIds },
+            },
+          },
+        ],
+        as: 'plays', // because when we are grouping by $challenges, and looking up for it, it's strucutre like challenge
+      },
+    },
+    {
+      $match: {
+        plays: { $exists: true, $ne: [] }, // Filter events with non-empty plays array
+      },
+    },
+    {
+      $project: {
+        plays: 0,
+      },
+    },
+    // pagination
+    ...aggregateQuery,
   ]);
 }

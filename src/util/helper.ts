@@ -1,3 +1,5 @@
+import { FilterQuery, UpdateQuery } from 'mongoose';
+
 export const wentWrong = 'Something went wrong! Please try again';
 export const makaoPlatformFeePercentage = 2.5 / 100; // this value is in percentage
 
@@ -45,4 +47,38 @@ export function aggregateBasicQueryGenerator(query: IDBQuery) {
 
 export interface IAnyObject {
   [key: string]: any;
+}
+
+export interface BulkWriteOperation {
+  updateOne: {
+    filter: FilterQuery<IAnyObject>;
+    update: UpdateQuery<IAnyObject> | Partial<IAnyObject>;
+    options?: any;
+  };
+}
+
+export function getStartDate(interval: 'WEEK' | 'MONTH' | '3MONTH' | 'YEAR', type?: 'date'): string | Date {
+  const currentDate = new Date();
+
+  switch (interval) {
+    case 'WEEK':
+      currentDate.setDate(currentDate.getDate() - 7);
+      break;
+    case 'MONTH':
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      break;
+    case '3MONTH':
+      currentDate.setMonth(currentDate.getMonth() - 3);
+      break;
+    case 'YEAR':
+      currentDate.setFullYear(currentDate.getFullYear() - 1);
+      break;
+    default: /* eslint-disable-next-line no-unused-expressions */
+      currentDate;
+    // 'DAY' is the default case
+  }
+
+  if (type === 'date') return currentDate;
+
+  return currentDate.toISOString();
 }

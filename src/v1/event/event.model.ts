@@ -18,6 +18,7 @@ export interface IEvent extends Document {
   startTime: string;
   endTime: string;
   decisionTime: string;
+  decisionTakenTime: string;
   challenges: IChallenge[];
   proposal?: boolean;
   fees?: number;
@@ -62,6 +63,9 @@ const eventSchema = new Schema<IEvent>({
   decisionTime: {
     type: String,
     required: true,
+  },
+  decisionTakenTime: {
+    type: String,
   },
   // challenges: [{
   //   title: String,
