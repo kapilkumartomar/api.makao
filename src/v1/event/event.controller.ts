@@ -182,6 +182,7 @@ export async function handleGetEvent(req: Request, res: Response) {
 
   try {
     const events = await getEvent(params?._id, body?.userInfo?._id);
+    
     const singleEvent = Array.isArray(events) ? events[0] as IEvent : {} as IEvent;
     const { img } = singleEvent;
     singleEvent.img = `${process.env.API_URL}images/${img}`;
