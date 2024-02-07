@@ -29,6 +29,7 @@ export interface IEvent extends Document {
   createdAt: Date
   updatedAt: Date
   comments: [IComment]
+  platformFees?: number
 }
 
 const eventSchema = new Schema<IEvent>({

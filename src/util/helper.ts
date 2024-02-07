@@ -3,7 +3,8 @@
 import { FilterQuery, UpdateQuery } from 'mongoose';
 
 export const wentWrong = 'Something went wrong! Please try again';
-export const makaoPlatformFeePercentage = 2.5 / 100; // this value is in percentage
+export const makaoPlatformFee = 2.5;
+export const makaoPlatformFeePercentage = makaoPlatformFee / 100; // this value is in percentage
 
 export type IDBQuery = {
   [key: string]: string | number | string[][] | { [key: string]: any };

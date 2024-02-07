@@ -5,7 +5,7 @@
 import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
-import { IDBQuery, wentWrong } from '@util/helper';
+import { IDBQuery, makaoPlatformFee, wentWrong } from '@util/helper';
 import { findUserFriends } from '@user/user.resources';
 import mongoose from 'mongoose';
 import {
@@ -202,6 +202,7 @@ export async function handleGetEvent(req: Request, res: Response) {
     const singleEvent = Array.isArray(events) ? events[0] as IEvent : {} as IEvent;
     const { img } = singleEvent;
     singleEvent.img = `${process.env.API_URL}images/${img}`;
+    singleEvent.platformFees = makaoPlatformFee;
 
     return res.status(200).json({
       message: 'Event fetched successfully',
