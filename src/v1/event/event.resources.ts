@@ -209,7 +209,6 @@ export async function getEvent(_id: string, userId: string) {
               as: 'plays',
             },
           },
-
         ],
         as: 'challenges',
       },
@@ -225,8 +224,37 @@ export async function getEvent(_id: string, userId: string) {
             $project: {
               _id: 0,
               username: 1,
+              friends: 1,
             },
-          }],
+          },
+
+          // Checing if user's friends are playing
+          {
+            $lookup: {
+              from: 'plays',
+              localField: 'friends',
+              foreignField: 'playBy',
+              as: 'friendPlays',
+            },
+          },
+          {
+            $addFields: {
+              areFriendsPlaying: {
+                $cond: {
+                  if: { $gt: [{ $size: '$friendPlays' }, 0] },
+                  then: true,
+                  else: false,
+                },
+              },
+            },
+          },
+          {
+            $project: {
+              friends: 0,
+              friendPlays: 0,
+            },
+          },
+        ],
       },
     },
     {
@@ -249,7 +277,7 @@ export async function getEvent(_id: string, userId: string) {
             },
           },
         ],
-      }
+      },
     },
     {
       $addFields: {
