@@ -19,7 +19,7 @@ const reviewSchema = new Schema<IEvent>({
     required: true,
   },
   review: {
-    type: Boolean,
+    type: Number,
     enum: [1, 0, null],
     default: null,
   },
