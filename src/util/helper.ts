@@ -1,3 +1,5 @@
+/* eslint-disable no-plusplus */
+
 import { FilterQuery, UpdateQuery } from 'mongoose';
 
 export const wentWrong = 'Something went wrong! Please try again';
@@ -55,6 +57,18 @@ export interface BulkWriteOperation {
     update: UpdateQuery<IAnyObject> | Partial<IAnyObject>;
     options?: any;
   };
+}
+
+export function generateUniqueString(length: number) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  let result = '';
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    result += characters.charAt(randomIndex);
+  }
+
+  return result;
 }
 
 export function getStartDate(interval: 'WEEK' | 'MONTH' | '3MONTH' | 'YEAR', type?: 'date'): string | Date {
