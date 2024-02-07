@@ -6,6 +6,11 @@ export async function createPlay(payload: IPlay) {
   return Play.create(payload);
 }
 
+export async function findOneAndUpdatePlay(_id: string, data: any, optionsPayload?: IAnyObject) {
+  const options: IAnyObject = { new: true, ...optionsPayload } ?? { new: true };
+  return Play.findByIdAndUpdate(_id, data, options);
+}
+
 export async function getEventVolume({ eventId }: { eventId: string }) {
   return Play.aggregate([
     {

@@ -7,18 +7,28 @@ import mongoose from 'mongoose';
 
 import { makaoPlatformFeePercentage, wentWrong } from '@util/helper';
 import {
-  createPlay, getEventVolume, getChallengeVolume, findPlay,
+  createPlay, getEventVolume, getChallengeVolume, findPlay, findOneAndUpdatePlay,
 } from './play.resources';
 import { updateChallenge } from '../challenge/challenge.resources';
 import { findEventById, updateEvent } from '../event/event.resources';
 
 const { ObjectId } = mongoose.Types;
 
-export async function handleCreateChallenge(req: Request, res: Response) {
+export async function handleCreatePlay(req: Request, res: Response) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { body } = req;
 
-    const eventInfo = await findEventById(body?.event);
+    // checking for organiser and
+    const eventInfoPromise = await findEventById(body?.event);
+
+    // checking for player already play for a challenge
+    const alreadyPlayedForChallengePromise = findPlay({ playBy: body.userInfo?._id, challenge: body?.challenge });
+    // checking for player before creating a play
+    const alreadyPlayerPromise = findPlay({ playBy: body.userInfo?._id, event: body?.event });
+
+    const [eventInfo, alreadyPlayedForChallenge, alreadyPlayer] = await Promise.all([eventInfoPromise, alreadyPlayedForChallengePromise, alreadyPlayerPromise]);
 
     // Organiser is not allowed to play for event he created
     if (eventInfo?.createdBy.equals(new ObjectId(body?.userInfo?._id))) {
@@ -27,11 +37,15 @@ export async function handleCreateChallenge(req: Request, res: Response) {
       });
     }
 
-    // checking for player before creating a play
-    const alreadyPlayerPromise = findPlay({ playBy: body.userInfo?._id, event: body?.event });
-    const playPromise = createPlay({ ...body, playBy: body.userInfo?._id });
-
-    const [alreadyPlayer, play] = await Promise.all([alreadyPlayerPromise, playPromise]);
+    // logic regaring if User alreay played for challenge, then add sum otherwise creating new play
+    let play: any;
+    if (alreadyPlayedForChallenge) {
+      play = await findOneAndUpdatePlay(alreadyPlayedForChallenge?._id as any, { amount: alreadyPlayedForChallenge?.amount + body?.amount });
+      console.log('alrdf play', play);
+    } else {
+      play = await createPlay({ ...body, playBy: body.userInfo?._id });
+      console.log('new play', play);
+    }
 
     // Play logic
 
@@ -61,13 +75,20 @@ export async function handleCreateChallenge(req: Request, res: Response) {
 
     const [updatedChallenge, updatedEvent] = await Promise.all([updatedChallengePromise, updatedEventPromise]);
 
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+
     return res.status(200).json({
       message: 'Play created successfully',
       data: { play, updatedChallenge, updatedEvent },
     });
   } catch (ex: any) {
+    await session.abortTransaction();
     return res.status(500).json({
       message: ex?.message ?? wentWrong,
     });
+  } finally {
+    // End the session
+    session.endSession();
   }
 }
