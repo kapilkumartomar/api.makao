@@ -5,6 +5,7 @@ import {
   IAnyObject, IDBQuery, aggregateBasicQueryGenerator, basicQueryGenerator,
 } from '@util/helper';
 import Event, { IEvent } from './event.model';
+import Play from '../play/play.model';
 
 export async function createEvent(payload: IEvent) {
   return Event.create(payload);
@@ -58,11 +59,15 @@ export async function getEventComments(eventId: string, query: any) {
 
 export async function updateEvent(
   eventId: Schema.Types.ObjectId,
-  update: { videoLink?: string, volume?: number, '$inc'?: IAnyObject, decisionTakenTime?: string },
+  update: {
+    videoLink?: string, volume?: number, '$inc'?: IAnyObject, decisionTakenTime?: string
+    invitations?: string[]
+  },
   optionsPayload?: IAnyObject,
 ) {
   const options: IAnyObject = { new: true, ...optionsPayload } ?? { new: true };
 
+  mongoose.set('debug', true);
   return Event.findByIdAndUpdate(
     eventId,
     update,
@@ -228,7 +233,6 @@ export async function getEvent(_id: string, userId: string) {
               balance: 1,
             },
           },
-
           // Checing if user's friends are playing
           {
             $lookup: {
@@ -253,6 +257,23 @@ export async function getEvent(_id: string, userId: string) {
             $project: {
               friends: 0,
               friendPlays: 0,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: 'users', // challenges collection name
+        localField: 'invitations',
+        foreignField: '_id',
+        as: 'invitations',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              username: 1,
+              email: 1,
             },
           },
         ],
@@ -339,5 +360,42 @@ export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery
     },
     // pagination
     ...aggregateQuery,
+  ]);
+}
+
+export async function findEventPlayers(eventId: string, basicQuery: any) {
+  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+
+  return Play.aggregate([
+    { $match: { event: new mongoose.Types.ObjectId(eventId) } },
+    // "unwind" or deconstruct an array field, creating a separate document for each element in the array
+    // getting related users
+    ...aggregateQuery,
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'playBy',
+        foreignField: '_id',
+        as: 'user',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              email: 1,
+              username: 1,
+              img: 1,
+            },
+          },
+        ],
+      },
+    },
+    // selecting specific
+    // {
+    //   $project: {
+    //     _id: 0,
+    //     comment: '$comments',
+    //     user: { $arrayElemAt: ['$user', 0] },
+    //   },
+    // },
   ]);
 }

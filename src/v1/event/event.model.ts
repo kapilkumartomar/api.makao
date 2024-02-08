@@ -29,6 +29,7 @@ export interface IEvent extends Document {
   createdAt: Date
   updatedAt: Date
   comments: [IComment]
+  invitations: Array<Schema.Types.ObjectId>;
   platformFees?: number
 }
 
@@ -95,6 +96,7 @@ const eventSchema = new Schema<IEvent>({
     type: Schema.Types.ObjectId,
   },
   comments: [commentSchema], // Embedded comments array
+  invitations: [{ type: Schema.Types.ObjectId, ref: 'User' }], // array of user that are invited
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields
   toJSON: { getters: true, virtuals: false },
