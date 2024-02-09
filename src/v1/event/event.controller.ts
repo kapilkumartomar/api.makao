@@ -19,11 +19,13 @@ import { IEvent } from './event.model';
 import { createNotifications } from '../notification/notification.resources';
 
 let dirname = __dirname;
-const dirnameSplit = dirname.split('src');
-console.log('dirName split', dirnameSplit, dirname, process.env.NODE_ENV);
-if (!dirnameSplit[1]) dirname = dirname.split('dist')[0];
-else dirname = dirname.split('src')[0];
-console.log('dirName ', dirname);
+console.log('dirname', dirname);
+dirname = dirname.split(process.env.NODE_ENV === 'production' ? 'dist' : 'src')[0];
+console.log('dirname', dirname);
+
+// console.log('dirName split', dirnameSplit, dirname, process.env.NODE_ENV);
+// if (!dirnameSplit[1]) dirname = dirname.split('dist')[0];
+// else dirname = dirname.split('src')[0];
 
 export async function handleCreateEvent(req: Request, res: Response) {
   const session = await mongoose.startSession();

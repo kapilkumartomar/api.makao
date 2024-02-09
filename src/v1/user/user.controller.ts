@@ -16,9 +16,7 @@ import {
 const BCRYPT_SALT = 10;
 
 let dirname = __dirname;
-const dirnameSplit = dirname.split('src');
-if (!dirnameSplit[1]) dirname = dirname.split('dist')[0];
-else dirname = dirname.split('src')[0];
+dirname = dirname.split(process.env.NODE_ENV === 'production' ? 'dist' : 'src')[0];
 
 export async function handleUserSignIn(req: Request, res: Response) {
   try {
