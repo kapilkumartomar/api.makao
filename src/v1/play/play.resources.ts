@@ -27,20 +27,32 @@ export async function getEventVolume({ eventId }: { eventId: string }) {
   ]);
 }
 
-export async function getChallengeVolume({ challengeId }: { challengeId: string }) {
-  return Play.aggregate([
-    {
-      $match:
-        { challenge: new mongoose.Types.ObjectId(challengeId) },
-    },
-    {
-      $group: {
-        _id: null,
-        challengeVolume: { $sum: '$amount' },
+export async function getEventChallengesVolume({ eventId }: { eventId: string }) {
+  return Play.aggregate(
+    [
+      {
+        $match: {
+          event: new mongoose.Types.ObjectId(eventId),
+        },
       },
-    },
-
-  ]);
+      {
+        $group: {
+          _id: {
+            event: '$event',
+            challenge: '$challenge',
+          },
+          challengeVolume: { $sum: '$amount' },
+        },
+      },
+      {
+        $project: {
+          _id: 0, // Exclude _id from the result
+          challenge: '$_id.challenge',
+          challengeVolume: 1,
+        },
+      },
+    ],
+  );
 }
 
 export async function findPlay(query: { playBy?: string, event?: string, challenge?: string }) {

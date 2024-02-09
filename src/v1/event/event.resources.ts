@@ -83,6 +83,7 @@ export async function getEvents(query: IDBQuery, basicQuery: IDBQuery) {
 export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
   if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift(query);
+  mongoose.set('debug', true);
   return Event.aggregate([
     ...aggregateQuery,
     {

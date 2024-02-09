@@ -202,7 +202,7 @@ export async function handleGetEvents(req: Request, res: Response) {
 export async function handleGetUserEvents(req: Request, res: Response) {
   const { query, body } = req;
   const { type, otherUserId, ...basicQuery } = query ?? {};
-  const currentDateISO = new Date().toISOString();
+  const currentDateISO = new Date();
   const rawQuery: IDBQuery = {};
 
   if (type === 'CURRENT') {
