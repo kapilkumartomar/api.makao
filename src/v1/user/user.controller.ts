@@ -10,7 +10,8 @@ import {
 import fs from 'fs/promises';
 import {
   createUser, findFriendsLeaderboard, findOrganisersLeaderboard, findOneAndUpdateUser,
-  findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard, addBlacklistUserEvents
+  findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard,
+  addBlacklistUserEvents, removeBlacklistUserEvents,
 } from './user.resources';
 
 const BCRYPT_SALT = 10;
@@ -321,8 +322,20 @@ export async function handleGetLeaderboard(req: Request, res: Response) {
 export async function handlePostBlacklist(req: Request, res: Response) {
   try {
     const update: any = await addBlacklistUserEvents(req.body);
-    // body?.userInfo?._id,
+    return res.status(200).json({
+      message: 'This Organizer is Blacklisted successfully',
+      data: update,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err?.message ?? wentWrong,
+    });
+  }
+}
 
+export async function handlePatchUnBlacklist(req: Request, res: Response) {
+  try {
+    const update: any = await removeBlacklistUserEvents(req.body);
     return res.status(200).json({
       message: 'This Organizer is Blacklisted successfully',
       data: update,

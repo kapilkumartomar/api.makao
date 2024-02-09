@@ -235,3 +235,17 @@ export async function addBlacklistUserEvents(body: any) {
     );
   }
 }
+
+export async function removeBlacklistUserEvents(body: any) {
+  mongoose.set('debug', true);
+
+  const { userInfo: { _id: userId }, blacklistedUserId } = body;
+
+  return User.findByIdAndUpdate(
+    userId,
+    {
+      $pull: { blacklistedUsers: new mongoose.Types.ObjectId(blacklistedUserId) },
+    },
+    { new: true },
+  );
+}
