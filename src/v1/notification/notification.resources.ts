@@ -19,6 +19,7 @@ export async function findNotifications(userId: string, basicQuery: any) {
             $project: {
               _id: 0,
               name: 1,
+              img: { $concat: [`${process.env.API_URL}images/`, '$img'] },
             },
           },
         ],
@@ -35,7 +36,7 @@ export async function findNotifications(userId: string, basicQuery: any) {
             $project: {
               _id: 0,
               username: 1,
-              img: 1,
+              img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
             },
           },
         ],

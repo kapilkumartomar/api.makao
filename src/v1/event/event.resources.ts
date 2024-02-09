@@ -40,7 +40,8 @@ export async function getEventComments(eventId: string, query: any) {
           {
             $project: {
               _id: 0,
-              email: 1,
+              username: 1,
+              img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
             },
           },
         ],
@@ -88,7 +89,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
       $project: {
         _id: 1,
         name: 1,
-        img: 1,
+        img: { $concat: [`${process.env.API_URL}images/`, '$img'] },
         fees: 1,
         volume: 1,
         playersCount: 1,
@@ -326,7 +327,7 @@ export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery
       $project: {
         _id: 1,
         name: 1,
-        img: { $concat: [process.env.API_URL, '$img'] },
+        img: { $concat: [`${process.env.API_URL}images/`, '$img'] },
         fees: 1,
         volume: 1,
         playersCount: 1,
@@ -383,7 +384,7 @@ export async function findEventPlayers(eventId: string, basicQuery: any) {
               _id: 1,
               email: 1,
               username: 1,
-              img: 1,
+              img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
             },
           },
         ],
