@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema({
     get: obfuscate,
   },
   friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  blacklistedUsers: {
+    type: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    default: [],
+  },
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields
   toJSON: { getters: true, virtuals: false },

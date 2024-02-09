@@ -95,6 +95,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
         playersCount: 1,
         createdAt: 1,
         decisionTakenTime: 1,
+        createdBy: 1,
       },
     },
     {
@@ -332,6 +333,7 @@ export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery
         volume: 1,
         playersCount: 1,
         createdAt: 1,
+        createdBy: 1,
       },
     },
     {

@@ -9,6 +9,7 @@ import {
   handleGetFriendsLeaderboard,
   handleGetOrganisersLeaderboard,
   handleGetLeaderboard,
+  handlePostBlacklist,
 } from './user.controller';
 import {
   validateEmail,
@@ -23,6 +24,7 @@ routes.get('/', auth, handleGetUser);
 routes.post('/', validate([validateEmail, validatePassword]), handleUserSignUp);
 routes.patch('/', auth, handleUserUpdate);
 routes.patch('/img', upload.fields([{ name: 'img', maxCount: 1 }]), auth, handleUpdateUserProfile);
+routes.post('/blacklist', auth, handlePostBlacklist);
 routes.post('/sign-in', validate([validateEmail, validatePassword]), handleUserSignIn);
 routes.get('/search', handleUsersSearch);
 routes.post('/friend', auth, handleUserAddFriend);

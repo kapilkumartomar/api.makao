@@ -10,7 +10,7 @@ export async function findUser({ email }: { email: string }) {
 }
 
 export async function findUserById({ _id }: { _id: string }) {
-  return User.findById({ _id });
+  return User.findById({ _id }).populate('blacklistedUsers');
 }
 
 export async function createUser(payload: { email: string, password: string, username?: string }) {
@@ -216,4 +216,22 @@ export async function findOrganisersLeaderboard(timeQuery: IDBQuery, basicQuery:
 
   mongoose.set('debug', true);
   return Event.aggregate(aggregateQuery);
+}
+
+export async function addBlacklistUserEvents(body: any) {
+  mongoose.set('debug', true);
+
+  const { userInfo: { _id: userId }, blacklistUserId } = body;
+
+  if (userId === blacklistUserId) {
+    throw new Error('You cannot blacklist yourself.');
+  } else {
+    return User.findByIdAndUpdate(
+      userId,
+      {
+        $addToSet: { blacklistedUsers: new mongoose.Types.ObjectId(blacklistUserId) },
+      },
+      { new: true },
+    );
+  }
 }
