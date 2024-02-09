@@ -20,7 +20,7 @@ import { createNotifications } from '../notification/notification.resources';
 
 let dirname = __dirname;
 const dirnameSplit = dirname.split('src');
-console.log('dirName split', dirnameSplit);
+console.log('dirName split', dirname, dirnameSplit);
 if (!dirnameSplit[1]) dirname = dirname.split('dist')[0];
 else dirname = dirname.split('src')[0];
 console.log('dirName ', dirname);
