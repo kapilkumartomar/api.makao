@@ -7,9 +7,9 @@ import mongoose from 'mongoose';
 
 import { makaoPlatformFeePercentage, wentWrong } from '@util/helper';
 import {
-  createPlay, getEventVolume, getChallengeVolume, findPlay, findOneAndUpdatePlay,
+  createPlay, getEventVolume, findPlay, findOneAndUpdatePlay, getEventChallengesVolume,
 } from './play.resources';
-import { updateChallenge } from '../challenge/challenge.resources';
+import { findChallenges, updateChallengeBulkwrite } from '../challenge/challenge.resources';
 import { findEventById, updateEvent } from '../event/event.resources';
 import { createNotifications } from '../notification/notification.resources';
 
@@ -52,29 +52,43 @@ export async function handleCreatePlay(req: Request, res: Response) {
 
     // getting respective volumes
     const eventVolumePromise = getEventVolume({ eventId: play?.event as any });
-    const challengeVolumePromise = getChallengeVolume({ challengeId: play?.challenge as any });
-    const [eventVolumeRes, challengeVolumeRes] = await Promise.all([eventVolumePromise, challengeVolumePromise]);
+    const challengesVolumePromise = getEventChallengesVolume({ eventId: play?.event as any });
+    const [eventVolumeRes, challengesVolumeRes] = await Promise.all([eventVolumePromise, challengesVolumePromise]);
 
     const eventVolume = Array.isArray(eventVolumeRes) ? eventVolumeRes[0]?.eventVolume : 0;
-    const challengeVolume = Array.isArray(challengeVolumeRes) ? challengeVolumeRes[0]?.challengeVolume : 0;
+    // const challengeVolume = Array.isArray(challengesVolumeRes) ? challengesVolumeRes[0]?.challengeVolume : 0;
 
     // caclulated the fee
     const organiserFee = eventVolume * (body?.fees ? body?.fees / 100 : 0);
     const fees = (eventVolume * makaoPlatformFeePercentage) + organiserFee;
 
+    // preparing bulk write
+    const challengesUpdate = challengesVolumeRes.filter((val) => val?.challengeVolume).map((update) => ({
+      updateOne: {
+        filter: { _id: update.challenge },
+        update: {
+          $set: {
+            odd: Number(Number((eventVolume - fees) / update.challengeVolume).toFixed(2)),
+          },
+        },
+      },
+    }));
+
     const updateEventPayload: any = { volume: eventVolume };
+
     // increasing the count only if not a player already
     if (!alreadyPlayer) updateEventPayload.$inc = { playersCount: 1 };
 
     // updating the respective
     const updatedEventPromise = updateEvent(play?.event as any, updateEventPayload, { select: '_id volume playersCount' });
-    const updatedChallengePromise = updateChallenge(
-      play?.challenge as any,
-      { odd: Number(Number((eventVolume - fees) / challengeVolume).toFixed(2)) },
-      { select: '_id odd' },
-    );
+    const updatedChallengesPromise = await updateChallengeBulkwrite(challengesUpdate);
 
-    const [updatedChallenge, updatedEvent] = await Promise.all([updatedChallengePromise, updatedEventPromise]);
+    const [, updatedEvent] = await Promise.all([updatedChallengesPromise, updatedEventPromise]);
+
+    const updatedChallenges = await findChallenges(
+      { _id: { $in: challengesVolumeRes.filter((val) => val?.challengeVolume).map((val) => val?.challenge) } },
+      { _id: 1, odd: 1 },
+    );
 
     // If everything is successful, commit the transaction
     await session.commitTransaction();
@@ -87,13 +101,12 @@ export async function handleCreatePlay(req: Request, res: Response) {
         eventId: eventInfo?._id,
         userId: new mongoose.Types.ObjectId(body.userInfo?._id),
         amount: body.amount,
-        challenge: updatedChallenge?.logic,
       },
     }]);
 
     return res.status(200).json({
       message: 'Play created successfully',
-      data: { play, updatedChallenge, updatedEvent },
+      data: { play, updatedChallenges, updatedEvent },
     });
   } catch (ex: any) {
     await session.abortTransaction();
