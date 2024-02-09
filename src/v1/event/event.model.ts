@@ -15,10 +15,10 @@ export interface IEvent extends Document {
   videoLink?: string;
   img?: string;
   privacy: 'PUBLIC' | 'PRIVATE' | 'SECRET';
-  startTime: string;
-  endTime: string;
-  decisionTime: string;
-  decisionTakenTime: string;
+  startTime: Date;
+  endTime: Date;
+  decisionTime: Date;
+  decisionTakenTime: Date;
   challenges: IChallenge[];
   proposal?: boolean;
   fees?: number;
@@ -55,19 +55,19 @@ const eventSchema = new Schema<IEvent>({
     default: 'PUBLIC',
   },
   startTime: {
-    type: String,
+    type: Date,
     required: true,
   },
   endTime: {
-    type: String,
+    type: Date,
     required: true,
   },
   decisionTime: {
-    type: String,
+    type: Date,
     required: true,
   },
   decisionTakenTime: {
-    type: String,
+    type: Date,
   },
   // challenges: [{
   //   title: String,
