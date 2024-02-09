@@ -75,7 +75,7 @@ export async function findFriendsLeaderboard(timeQuery: IDBQuery, basicQuery: ID
       $project: {
         _id: 1,
         username: 1,
-        img: { $concat: [process.env.API_URL, '$img'] },
+        img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
         claims: 1,
       },
     },
@@ -129,7 +129,7 @@ export async function findLeaderboard(timeQuery: IDBQuery, basicQuery: IDBQuery)
       $project: {
         _id: 1,
         username: 1,
-        img: { $concat: [process.env.API_URL, '$img'] },
+        img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
         claims: 1,
       },
     },
@@ -205,7 +205,7 @@ export async function findOrganisersLeaderboard(timeQuery: IDBQuery, basicQuery:
       $project: {
         _id: '$userDetails._id',
         username: '$userDetails.username',
-        img: { $concat: [process.env.API_URL, '$userDetails.img'] },
+        img: { $concat: [`${process.env.API_URL}profile/`, '$userDetails.img'] },
         totalVolume: 1,
         decisionTime: 1,
       },
