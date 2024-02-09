@@ -53,7 +53,7 @@ export async function handleCreateEvent(req: Request, res: Response) {
       for: val,
       metaData: {
         eventId: event?._id,
-        userId: body.userInfo?._id,
+        userId: new mongoose.Types.ObjectId(body.userInfo?._id),
       },
     }));
 
@@ -136,7 +136,7 @@ export async function handleUpdateEvent(req: Request, res: Response) {
         for: val,
         metaData: {
           eventId: updatedEvent?._id,
-          userId: body?.userInfo?._id,
+          userId: new mongoose.Types.ObjectId(body?.userInfo?._id),
         },
       }));
 

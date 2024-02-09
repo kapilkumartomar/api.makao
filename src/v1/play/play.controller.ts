@@ -85,7 +85,7 @@ export async function handleCreatePlay(req: Request, res: Response) {
       for: eventInfo?.createdBy,
       metaData: {
         eventId: eventInfo?._id,
-        userId: body.userInfo?._id,
+        userId: new mongoose.Types.ObjectId(body.userInfo?._id),
         amount: body.amount,
         challenge: updatedChallenge?.logic,
       },

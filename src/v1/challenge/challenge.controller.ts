@@ -113,7 +113,8 @@ export async function handleChallengeDecision(req: Request, res: Response) {
         status: playStatus,
       },
     }));
-    console.log('Transaction committed successfully', winNofications);
+
+    createNotifications(winNofications);
 
     return res.status(200).json({
       message: 'Challenge updated successfully',
