@@ -120,8 +120,32 @@ export async function handleGetUser(req: Request, res: Response) {
     const query: any = await findUserById({ _id: body?.userInfo?._id });
 
     return res.status(200).json({
-      message: 'User updated successfully',
+      message: 'User details fetched successfully',
       data: query,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetOtherUser(req: Request, res: Response) {
+  try {
+    const { params, body } = req;
+    const { _id } = params ?? {};
+
+    const query: any = { _id };
+    if (body?.userInfo?._id !== _id) query.privacy = true;
+    let user: any = await findUser(query);
+
+    if (body?.userInfo?._id === _id) {
+      user = JSON.parse(JSON.stringify(user));
+      user.sameUser = true;
+    }
+    return res.status(200).json({
+      message: 'User details fetched successfully',
+      data: user || { privacy: false },
     });
   } catch (ex: any) {
     return res.status(500).json({
@@ -159,6 +183,13 @@ export async function handleUpdateUserProfile(req: Request, res: Response) {
 export async function handleUserAddFriend(req: Request, res: Response) {
   try {
     const { body } = req;
+
+    if (body?.userInfo?._id === body?.newFriendId) {
+      return res.status(500).json({
+        message: 'You can add yourself as friend!',
+      });
+    }
+
     const query: any = await findOneAndUpdateUser(
       body?.userInfo?._id,
       { $addToSet: { friends: body?.newFriendId } },
