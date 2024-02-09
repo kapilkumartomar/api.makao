@@ -11,6 +11,7 @@ import {
 } from './play.resources';
 import { updateChallenge } from '../challenge/challenge.resources';
 import { findEventById, updateEvent } from '../event/event.resources';
+import { createNotifications } from '../notification/notification.resources';
 
 const { ObjectId } = mongoose.Types;
 
@@ -77,6 +78,18 @@ export async function handleCreatePlay(req: Request, res: Response) {
 
     // If everything is successful, commit the transaction
     await session.commitTransaction();
+
+    // Notification to the organiser on event being played by another user
+    createNotifications([{
+      type: 'ORGANISED_EVENT',
+      for: eventInfo?.createdBy,
+      metaData: {
+        eventId: eventInfo?._id,
+        userId: new mongoose.Types.ObjectId(body.userInfo?._id),
+        amount: body.amount,
+        challenge: updatedChallenge?.logic,
+      },
+    }]);
 
     return res.status(200).json({
       message: 'Play created successfully',

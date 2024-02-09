@@ -14,9 +14,11 @@ import {
 } from './user.resources';
 
 const BCRYPT_SALT = 10;
+
 let dirname = __dirname;
-dirname = dirname.split('dist')[0];
-if (!dirname[1]) dirname = dirname.split('src')[0];
+const dirnameSplit = dirname.split('src');
+if (!dirnameSplit[1]) dirname = dirname.split('dist')[0];
+else dirname = dirname.split('src')[0];
 
 export async function handleUserSignIn(req: Request, res: Response) {
   try {

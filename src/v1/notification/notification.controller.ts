@@ -5,7 +5,8 @@ import { createNotifications, findNotifications } from './notification.resources
 
 export async function handleGetNotifications(req: Request, res: Response) {
   try {
-    const notifications: any = await findNotifications(req.query);
+    const { body, query } = req;
+    const notifications: any = await findNotifications(body?.userInfo?._id, query);
 
     return res.status(200).json({
       message: 'Notifications fetched successfully',

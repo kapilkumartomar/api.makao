@@ -5,19 +5,23 @@
 import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
-import { IDBQuery, makaoPlatformFee, wentWrong } from '@util/helper';
+import {
+  IAnyObject, IDBQuery, makaoPlatformFee, wentWrong,
+} from '@util/helper';
 import { findUserFriends } from '@user/user.resources';
 import mongoose from 'mongoose';
 import {
-  createEvent, createEventComments, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
+  createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
 import { createChallenges } from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
 import { IEvent } from './event.model';
+import { createNotifications } from '../notification/notification.resources';
 
 let dirname = __dirname;
-dirname = dirname.split('dist')[0];
-if (!dirname[1]) dirname = dirname.split('src')[0];
+const dirnameSplit = dirname.split('src');
+if (!dirnameSplit[1]) dirname = dirname.split('dist')[0];
+else dirname = dirname.split('src')[0];
 
 export async function handleCreateEvent(req: Request, res: Response) {
   const session = await mongoose.startSession();
@@ -41,9 +45,20 @@ export async function handleCreateEvent(req: Request, res: Response) {
     const userFriendsPromise = findUserFriends(body.userInfo?._id);
     const [event, userFriends] = await Promise.all([eventPromise, userFriendsPromise]);
 
-    console.log('user fie', userFriends);
-
     const challenges = await createChallenges(reqChallenges.map((val: IChallenge) => ({ ...val, createdBy: body.userInfo?._id, event: event?._id })));
+
+    // creating notification to friends
+    const notifications = userFriends?.friends.map((val) => ({
+      type: 'FRIEND_EVENT',
+      for: val,
+      metaData: {
+        eventId: event?._id,
+        userId: new mongoose.Types.ObjectId(body.userInfo?._id),
+      },
+    }));
+
+    // Notification to the friends about the created event
+    createNotifications(notifications as IAnyObject[]);
 
     await session.commitTransaction();
     return res.status(200).json({
@@ -83,7 +98,6 @@ export async function handleCreateComment(req: Request, res: Response) {
   }
 }
 
-// Create a comment for an event
 export async function handleGetComments(req: Request, res: Response) {
   const { query, params } = req;
   const eventId = params._id;
@@ -116,12 +130,26 @@ export async function handleUpdateEvent(req: Request, res: Response) {
   try {
     const updatedEvent = await updateEvent(eventId as any, body);
 
+    if (updatedEvent?._id && body?.newInvitations && Array.isArray(body?.newInvitations)) {
+      const notifications = body.newInvitations.map((val: any) => ({
+        type: 'INVITATION',
+        for: val,
+        metaData: {
+          eventId: updatedEvent?._id,
+          userId: new mongoose.Types.ObjectId(body?.userInfo?._id),
+        },
+      }));
+
+      createNotifications(notifications);
+    }
+
     if (!updatedEvent) {
       return res.status(404).json({ error: 'Event not found' });
     }
 
     return res.status(200).json({
       message: 'Event updated successfully',
+      data: updatedEvent,
     });
   } catch (ex: any) {
     return res.status(500).json({
@@ -227,6 +255,26 @@ export async function handleGetFriendsEvents(req: Request, res: Response) {
     return res.status(200).json({
       message: 'Friends Events fetched successfully',
       data: events,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetPlayers(req: Request, res: Response) {
+  const { query, params } = req;
+  const eventId = params._id;
+
+  try {
+    const players = await findEventPlayers(eventId as any, query);
+
+    return res.status(200).json({
+      message: 'Players fetched successfully',
+      data: players,
       page: query?.page ? Number(query?.page) : 1,
       pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
     });

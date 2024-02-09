@@ -38,5 +38,5 @@ export const validateCreateComment = [
 
 export const validateUpdateEvent = [
   check('_id').not().isEmpty(),
-  body('videoLink').not().isEmpty(),
+  // body('videoLink').exists().notEmpty(),
 ];

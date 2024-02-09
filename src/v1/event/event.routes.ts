@@ -10,6 +10,7 @@ import {
   handleGetEvent,
   handleGetEvents,
   handleGetFriendsEvents,
+  handleGetPlayers,
   handleGetUserEvents,
   handleUpdateEvent,
 } from './event.controller';
@@ -68,6 +69,12 @@ routes.get(
   '/:_id/comment',
   auth,
   handleGetComments,
+);
+
+routes.get(
+  '/:_id/players',
+  auth,
+  handleGetPlayers,
 );
 
 module.exports = routes;
