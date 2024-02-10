@@ -20,7 +20,8 @@ dirname = dirname.split(process.env.NODE_ENV === 'production' ? 'dist' : 'src')[
 
 export async function handleUserSignIn(req: Request, res: Response) {
   try {
-    const query: any = await findUser(req.body);
+    const { email, password } = req.body;
+    const query: any = await findUser({ email });
     if (!query?._id) {
       return res.status(400).json({
         message: "Email does't exist",
@@ -28,7 +29,7 @@ export async function handleUserSignIn(req: Request, res: Response) {
     }
 
     const comparePasswrod = bcrypt.compareSync(
-      req.body.password,
+      password,
       query.password,
     );
 
@@ -56,7 +57,7 @@ export async function handleUserSignIn(req: Request, res: Response) {
 export async function handleUserSignUp(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
-    const query: any = await findUser(req.body);
+    const query: any = await findUser({ email });
     if (query?._id) {
       return res.status(400).json({
         message: 'Email already exist. Please use another email.',
