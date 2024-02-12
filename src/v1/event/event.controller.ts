@@ -181,7 +181,7 @@ export async function handleGetEvents(req: Request, res: Response) {
 
   // If type is not organised, should be future, public
   if (!type) {
-    rawQuery.endTime = { $gte: new Date().toISOString() };
+    rawQuery.endTime = { $gte: new Date() };
     rawQuery.privacy = 'PUBLIC';
   }
 

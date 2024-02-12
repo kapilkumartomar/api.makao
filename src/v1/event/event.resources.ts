@@ -78,9 +78,9 @@ export async function updateEvent(
 }
 
 export async function getEvents(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
+  mongoose.set('debug', true);
   const currentUser = await findUserById({ _id: userId });
-  const currentUserBlacklist = currentUser?.blacklistedUsers ?? [];
-
+  const currentUserBlacklist = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
   if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift({ $match: query });
   return Event.aggregate([
