@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 
-import { wentWrong } from '@util/helper';
+import { IDBQuery, wentWrong } from '@util/helper';
 import { findCategories } from './category.resources';
 
 export async function handleGetCategories(req: Request, res: Response) {
   try {
-    const categories: any = await findCategories(req.query);
+    const categories: any = await findCategories(req.query as IDBQuery);
 
     return res.status(200).json({
       message: 'Categories fetched successfully',

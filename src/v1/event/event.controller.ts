@@ -8,7 +8,7 @@ import fs from 'fs/promises';
 import {
   IAnyObject, IDBQuery, makaoPlatformFee, wentWrong,
 } from '@util/helper';
-import { findUserFriends } from '@user/user.resources';
+import { findUserFriends, findUserFriendsDetails, findUsers } from '@user/user.resources';
 import mongoose from 'mongoose';
 import {
   createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
@@ -17,6 +17,7 @@ import { createChallenges } from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
 import { IEvent } from './event.model';
 import { createNotifications } from '../notification/notification.resources';
+import { findCategories } from '../category/category.resources';
 
 let dirname = __dirname;
 console.log('dirname', dirname);
@@ -179,7 +180,7 @@ export async function handleGetEvents(req: Request, res: Response) {
 
   // If type is not organised, should be future, public
   if (!type) {
-    rawQuery.endTime = { $gte: new Date().toISOString() };
+    rawQuery.endTime = { $gte: new Date() };
     rawQuery.privacy = 'PUBLIC';
   }
 
@@ -285,6 +286,45 @@ export async function handleGetPlayers(req: Request, res: Response) {
       data: players,
       page: query?.page ? Number(query?.page) : 1,
       pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleSearchEventsUsersCategories(req: Request, res: Response) {
+  const { query, body } = req;
+  const { searchStr } = query;
+  const { userInfo: { _id } } = body;
+  try {
+    const searchRegex = new RegExp(searchStr as string ?? '', 'i');
+    const userFriends = await findUserFriendsDetails(_id);
+    const friendIds = userFriends?.friends?.map((val) => val?._id?.toString());
+
+    const usersPromise = findUsers({
+      $or: [
+        // { email: searchRegex },
+        { username: searchRegex }],
+      privacy: true,
+    });
+
+    const eventsPromise = getEvents({ $and: [{ name: searchRegex, privacy: 'PUBLIC' }] });
+    const friendsEventsPromise = getEvents({ $and: [{ name: searchRegex, createdBy: { $in: friendIds }, privacy: ['PUBLIC', 'PRIVATE'] }] });
+    const privateSecretEventsPromise = getEvents({ $and: [{ name: searchRegex, invitedUsers: _id, privacy: ['PRIVATE', 'SECRET'] }] });
+    const categoriesPromise = findCategories({ $and: [{ title: searchRegex, status: true }] });
+
+    const [users, events, friendsEvents, privateSecretEvents, categories] = await Promise.all([
+      usersPromise, eventsPromise, friendsEventsPromise, privateSecretEventsPromise, categoriesPromise]);
+
+    return res.status(200).json({
+      message: 'Details fetched successfully',
+      data: {
+        users, userFriends: userFriends?.friends ?? [], events, friendsEvents, privateSecretEvents, categories,
+      },
+      // page: query?.page ? Number(query?.page) : 1,
+      // pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
     });
   } catch (ex: any) {
     return res.status(500).json({

@@ -7,10 +7,10 @@ export const makaoPlatformFee = 2.5;
 export const makaoPlatformFeePercentage = makaoPlatformFee / 100; // this value is in percentage
 
 export type IDBQuery = {
-  [key: string]: string | number | string[][] | { [key: string]: any };
+  [key: string]: boolean | string | number | string[][] | { [key: string]: any };
 };
 
-export function basicQueryGenerator(query: IDBQuery) {
+export function basicQueryGenerator(query?: IDBQuery) {
   const {
     page, pageSize, sortAt = 'createdAt', sortType = 'dsc',
   } = query ?? {};
@@ -95,5 +95,5 @@ export function getStartDate(interval: 'WEEK' | 'MONTH' | '3MONTH' | 'YEAR', typ
 
   if (type === 'date') return currentDate;
 
-  return currentDate.toISOString();
+  return currentDate;
 }
