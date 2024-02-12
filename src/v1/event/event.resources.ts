@@ -326,6 +326,12 @@ export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
   return Event.aggregate([
     {
+      $match: {
+        privacy: { $in: ['PUBLIC', 'PRIVATE'] },
+        endTime: { $gte: new Date() },
+      },
+    },
+    {
       $project: {
         _id: 1,
         name: 1,
