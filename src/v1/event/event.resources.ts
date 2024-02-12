@@ -6,6 +6,7 @@ import {
 } from '@util/helper';
 import Event, { IEvent } from './event.model';
 import Play from '../play/play.model';
+import { findUserById } from '../user/user.resources';
 
 export async function createEvent(payload: IEvent) {
   return Event.create(payload);
@@ -76,8 +77,22 @@ export async function updateEvent(
   );
 }
 
-export async function getEvents(query: IDBQuery, basicQuery: IDBQuery) {
-  return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
+export async function getEvents(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
+  const currentUser = await findUserById({ _id: userId });
+  const currentUserBlacklist = currentUser?.blacklistedUsers ?? [];
+
+  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift({ $match: query });
+  return Event.aggregate([
+    {
+      $match: {
+        createdBy: { $nin: currentUserBlacklist },
+      },
+    },
+    ...aggregateQuery,
+  ]);
+
+  // return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
 }
 
 export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, userId: any) {

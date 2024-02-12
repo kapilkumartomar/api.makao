@@ -9,7 +9,7 @@ import {
   handleGetFriendsLeaderboard,
   handleGetOrganisersLeaderboard,
   handleGetLeaderboard,
-  handlePostBlacklist, handlePatchUnBlacklist,
+  handlePostBlacklist, handlePatchUnBlacklist, handleGetIsBlacklisted,
 } from './user.controller';
 import {
   validateEmail,
@@ -26,6 +26,7 @@ routes.patch('/', auth, handleUserUpdate);
 routes.patch('/img', upload.fields([{ name: 'img', maxCount: 1 }]), auth, handleUpdateUserProfile);
 routes.patch('/blacklist', auth, handlePostBlacklist);
 routes.patch('/unblacklist', auth, handlePatchUnBlacklist);
+routes.get('/isblacklisted/:eventId', auth, handleGetIsBlacklisted);
 routes.post('/sign-in', validate([validateEmail, validatePassword]), handleUserSignIn);
 routes.get('/search', handleUsersSearch);
 routes.post('/friend', auth, handleUserAddFriend);

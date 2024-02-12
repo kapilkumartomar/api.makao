@@ -249,3 +249,22 @@ export async function removeBlacklistUserEvents(body: any) {
     { new: true },
   );
 }
+
+export async function IsBlacklistedInUserEvent(userId: string, eventId: string) {
+  mongoose.set('debug', true);
+  let isBlacklisted;
+
+  const currentEvent = await Event.findById({ _id: new mongoose.Types.ObjectId(eventId) });
+  if (currentEvent && currentEvent!.createdBy) {
+    const EventOrganiserUser = await User.findById({
+      _id: new mongoose.Types.ObjectId(currentEvent!.createdBy),
+    });
+    isBlacklisted = EventOrganiserUser?.blacklistedUsers.includes(
+      new mongoose.Types.ObjectId(userId),
+    );
+  } else {
+    throw new Error('Not Able to find out if user is blacklisted or not.');
+  }
+
+  return isBlacklisted;
+}

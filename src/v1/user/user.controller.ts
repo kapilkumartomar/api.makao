@@ -11,7 +11,7 @@ import fs from 'fs/promises';
 import {
   createUser, findFriendsLeaderboard, findOrganisersLeaderboard, findOneAndUpdateUser,
   findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard,
-  addBlacklistUserEvents, removeBlacklistUserEvents,
+  addBlacklistUserEvents, removeBlacklistUserEvents, IsBlacklistedInUserEvent,
 } from './user.resources';
 
 const BCRYPT_SALT = 10;
@@ -339,6 +339,23 @@ export async function handlePatchUnBlacklist(req: Request, res: Response) {
     return res.status(200).json({
       message: 'This Organizer is Blacklisted successfully',
       data: update,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetIsBlacklisted(req: Request, res: Response) {
+  try {
+    const { userInfo: { _id: userId } } = req.body;
+    const { eventId } = req.params;
+
+    const isBlacklisted: boolean | undefined = await IsBlacklistedInUserEvent(userId, eventId);
+    return res.status(200).json({
+      message: isBlacklisted ? 'This User is Blacklisted in this Event.' : 'User is whitelisted in this Event.',
+      data: { isBlacklisted },
     });
   } catch (err: any) {
     return res.status(500).json({
