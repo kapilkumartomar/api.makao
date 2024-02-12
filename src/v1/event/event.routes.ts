@@ -12,6 +12,7 @@ import {
   handleGetFriendsEvents,
   handleGetPlayers,
   handleGetUserEvents,
+  handleSearchEventsUsersCategories,
   handleUpdateEvent,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
@@ -43,6 +44,12 @@ routes.get(
   '/friends',
   auth,
   handleGetFriendsEvents,
+);
+
+routes.get(
+  '/search',
+  auth,
+  handleSearchEventsUsersCategories,
 );
 
 routes.get(

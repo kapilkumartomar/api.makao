@@ -61,7 +61,7 @@ export async function getEventComments(eventId: string, query: any) {
 export async function updateEvent(
   eventId: Schema.Types.ObjectId,
   update: {
-    videoLink?: string, volume?: number, '$inc'?: IAnyObject, decisionTakenTime?: string
+    videoLink?: string, volume?: number, '$inc'?: IAnyObject, decisionTakenTime?: any
     invitations?: string[]
   },
   optionsPayload?: IAnyObject,
@@ -76,7 +76,8 @@ export async function updateEvent(
   );
 }
 
-export async function getEvents(query: IDBQuery, basicQuery: IDBQuery) {
+export async function getEvents(query: IDBQuery, basicQuery?: IDBQuery) {
+  mongoose.set('debug', true);
   return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
 }
 

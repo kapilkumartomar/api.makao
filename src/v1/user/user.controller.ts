@@ -86,10 +86,12 @@ export async function handleUserSignUp(req: Request, res: Response) {
 export async function handleUsersSearch(req: Request, res: Response) {
   try {
     const { email } = req.query;
-    const query: any = await findUsers({ email: email as string });
+    const query: any = await findUsers({ email: { $regex: new RegExp(email as string, 'i') }, privacy: true }, {
+      id: 1, username: 1, email: 1, img: 1,
+    });
 
     return res.status(200).json({
-      message: 'Users found successfully',
+      message: 'Public Users found successfully',
       data: query,
     });
   } catch (ex: any) {
