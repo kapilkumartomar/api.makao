@@ -9,7 +9,7 @@ import {
   handleGetFriendsLeaderboard,
   handleGetOrganisersLeaderboard,
   handleGetLeaderboard,
-  handlePostBlacklist, handlePatchUnBlacklist, handleGetIsBlacklisted,
+  handlePostBlacklist, handlePatchUnBlacklist, handleGetIsBlacklisted, handleGetOtherUser,
 } from './user.controller';
 import {
   validateEmail,
@@ -32,6 +32,9 @@ routes.get('/search', handleUsersSearch);
 routes.post('/friend', auth, handleUserAddFriend);
 routes.get('/friends', auth, handleGetUserFriends);
 routes.get('/leaderboard', auth, handleGetLeaderboard);
+
+routes.get('/:_id', auth, handleGetOtherUser);
+
 routes.get('/leaderboard/organisers', auth, handleGetOrganisersLeaderboard);
 routes.get('/leaderboard/friends', auth, handleGetFriendsLeaderboard);
 

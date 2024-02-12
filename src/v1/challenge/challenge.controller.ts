@@ -3,7 +3,7 @@
 
 import { Request, Response } from 'express';
 
-import { makaoPlatformFeePercentage, wentWrong } from '@util/helper';
+import { wentWrong } from '@util/helper';
 import mongoose from 'mongoose';
 import { updateUsersBulkwrite } from '@user/user.resources';
 import { createChallenge, updateChallenge } from './challenge.resources';
@@ -78,9 +78,12 @@ export async function handleChallengeDecision(req: Request, res: Response) {
 
     const event = await updateEvent(challenge?.event, { decisionTakenTime: new Date().toISOString() }, { select: '_id decisionTakenTime volume fees' }) as any;
 
-    // caclulated the fee
-    const organiserFee = event.volume * (event?.fees ? event?.fees / 100 : 0);
-    const fees = (event.volume * makaoPlatformFeePercentage) + organiserFee;
+    // For now the odd's already being calculated by removing the fee
+
+    // calculated the fee
+
+    // const organiserFee = event.volume * (event?.fees ? event?.fees / 100 : 0);
+    // const fees = (event.volume * makaoPlatformFeePercentage) + organiserFee;
 
     // updating the Users's balance and claims
     const balanceUpdate: any = plays.map((val) => ({
@@ -88,11 +91,14 @@ export async function handleChallengeDecision(req: Request, res: Response) {
         filter: { _id: val?.playBy },
         update: {
           $inc: { balance: val?.amount },
+
           // max Potential win to calculate to win amount
           $push: {
             claims: {
               amount:
-                ((Number(val?.amount) * challenge?.odd) - Number(val?.amount) - fees),
+                ((Number(val?.amount) * challenge?.odd) - Number(val?.amount)
+              //  - fees
+                ),
               challenge: challenge?._id,
             },
           },

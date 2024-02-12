@@ -5,8 +5,8 @@ import mongoose from 'mongoose';
 import User from './user.model';
 import Event from '../event/event.model';
 
-export async function findUser({ email }: { email: string }) {
-  return User.findOne({ email });
+export async function findUser(payload: { email?: string, privacy?: boolean, _id?: string }) {
+  return User.findOne(payload);
 }
 
 export async function findUserById({ _id }: { _id: string }) {

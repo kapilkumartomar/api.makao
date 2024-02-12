@@ -164,11 +164,15 @@ export async function handleUpdateEvent(req: Request, res: Response) {
 
 export async function handleGetEvents(req: Request, res: Response) {
   const { query, body } = req;
-  const { type, categoryId, ...basicQuery } = query ?? {};
+  const {
+    type, categoryId, otherUserId, ...basicQuery
+  } = query ?? {};
 
   const rawQuery: IDBQuery = {};
   if (type === 'ORGANISED') {
-    rawQuery.createdBy = body?.userInfo?._id;
+    // checking between other user and same user
+    console.log('organs', otherUserId, otherUserId || body?.userInfo?._id);
+    rawQuery.createdBy = otherUserId || body?.userInfo?._id;
   }
 
   const userId = body.userInfo._id;
@@ -199,8 +203,8 @@ export async function handleGetEvents(req: Request, res: Response) {
 
 export async function handleGetUserEvents(req: Request, res: Response) {
   const { query, body } = req;
-  const { type, ...basicQuery } = query ?? {};
-  const currentDateISO = new Date().toISOString();
+  const { type, otherUserId, ...basicQuery } = query ?? {};
+  const currentDateISO = new Date();
   const rawQuery: IDBQuery = {};
 
   if (type === 'CURRENT') {
@@ -212,7 +216,7 @@ export async function handleGetUserEvents(req: Request, res: Response) {
   }
 
   try {
-    const events = await getEventsAndPlays({ $match: rawQuery }, basicQuery as IDBQuery, body?.userInfo?._id);
+    const events = await getEventsAndPlays({ $match: rawQuery }, basicQuery as IDBQuery, otherUserId || body?.userInfo?._id);
 
     return res.status(200).json({
       message: 'User Events fetched successfully',
