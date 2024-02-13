@@ -82,7 +82,7 @@ export async function getEvents(query: IDBQuery, basicQuery: IDBQuery, userId: a
   const currentUser = await findUserById({ _id: userId });
   const currentUserBlacklist = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
-  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift({ $match: query });
+  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift({ $match: { ...query, ...(query.createdBy ? { createdBy: new mongoose.Types.ObjectId(query.createdBy as string) } : {}) } });
   return Event.aggregate([
     {
       $match: {
