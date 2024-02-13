@@ -34,16 +34,21 @@ export async function handleCreateEvent(req: Request, res: Response) {
 
   try {
     const { files, body } = req as any;
-    const imageFile: any = files?.img[0];
+    let imgName = ''
+    // conditionally checking for image
+    if (files && Array.isArray(files?.img) && files?.img[0]) {
+      const imageFile: any = files?.img[0];
 
-    const uniquePrefix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const imgName = `img-${body.userInfo?._id}-${uniquePrefix}-${imageFile?.originalname}`;
+      const uniquePrefix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      imgName = `img-${body.userInfo?._id}-${uniquePrefix}-${imageFile?.originalname}`;
 
-    await fs.writeFile(
-      `${dirname}public/images/${imgName}`,
-      imageFile?.buffer as any,
-    );
+      await fs.writeFile(
+        `${dirname}public/images/${imgName}`,
+        imageFile?.buffer as any,
+      );
+    }
 
+    console.log('image name')
     const reqChallenges = JSON.parse(body.challenges);
     delete body.challenges;
     const eventPromise = createEvent({ ...body, img: imgName, createdBy: body.userInfo?._id });
