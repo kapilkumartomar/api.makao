@@ -62,7 +62,7 @@ export async function getEventComments(eventId: string, query: any) {
 export async function updateEvent(
   eventId: Schema.Types.ObjectId,
   update: {
-    videoLink?: string, volume?: number, '$inc'?: IAnyObject, decisionTakenTime?: string
+    videoLink?: string, volume?: number, '$inc'?: IAnyObject, decisionTakenTime?: any
     invitations?: string[]
   },
   optionsPayload?: IAnyObject,
@@ -340,6 +340,12 @@ export async function findEventById(_id: string) {
 export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery: IDBQuery) {
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
   return Event.aggregate([
+    {
+      $match: {
+        privacy: { $in: ['PUBLIC', 'PRIVATE'] },
+        endTime: { $gte: new Date() },
+      },
+    },
     {
       $project: {
         _id: 1,

@@ -17,9 +17,9 @@ export async function createUser(payload: { email: string, password: string, use
   return User.create(payload);
 }
 
-export async function findUsers(payload: { email: string }) {
-  const { email } = payload;
-  return User.find({ email: { $regex: new RegExp(email, 'i') } }, { _id: 1, email: 1 }).limit(30);
+export async function findUsers(payload: IDBQuery, projectionOptions?: IAnyObject) {
+  const projection: IAnyObject = projectionOptions ?? {};
+  return User.find(payload, projection).limit(30);
 }
 
 export async function updateUsers(payload: { email: string }) {
