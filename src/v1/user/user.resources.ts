@@ -315,5 +315,22 @@ export async function findUserClaims(userId: string) {
         },
       },
     },
+    // {
+    //   $lookup: {
+    //     from: 'challenges',
+    //     localField: 'claims.challenge',
+    //     foreignField: '_id',
+    //     as: 'challenge',
+    //     pipeline: [
+    //       {
+    //         $project: {
+    //           _id: 1,
+    //           logic: 1,
+    //           title: 1,
+    //         },
+    //       },
+    //     ],
+    //   }
+    // }
   ]);
 }

@@ -13,7 +13,7 @@ import {
   findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard, findUserClaims,
   addBlacklistUserEvents, removeBlacklistUserEvents, IsBlacklistedInUserEvent,
 } from './user.resources';
-import { findPlays } from '../play/play.resources';
+import { findPlaysWithDetails } from '../play/play.resources';
 
 const BCRYPT_SALT = 10;
 
@@ -406,10 +406,10 @@ export async function handleGetWallet(req: Request, res: Response) {
       body?.userInfo?._id,
     );
 
-    const plays = await findPlays(
+    const plays = await findPlaysWithDetails(
       { playBy: body?.userInfo?._id },
       {
-        amount: 1, _id: 1, createdAt: 1, type: 'PLAY',
+        amount: 1, _id: 1, createdAt: 1, type: 'PLAY', event: 1,
       },
       { sort: { createdAt: -1 }, limit: 100 },
     );
