@@ -292,7 +292,7 @@ export async function findUserClaims(userId: string) {
           $filter: {
             input: '$claims',
             as: 'claims',
-            cond: { $eq: ['$$claims.status', false] },
+            cond: { $eq: ['$$claims.status', true] },
           },
         },
       },
