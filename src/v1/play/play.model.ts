@@ -14,8 +14,8 @@ const playSchema = new Schema<IPlay>({
     type: Number,
     required: true,
   },
-  challenge: Schema.Types.ObjectId,
-  event: Schema.Types.ObjectId,
+  challenge: { type: Schema.Types.ObjectId, ref: 'Challenge' },
+  event: { type: Schema.Types.ObjectId, ref: 'Event' },
   playBy: Schema.Types.ObjectId,
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields

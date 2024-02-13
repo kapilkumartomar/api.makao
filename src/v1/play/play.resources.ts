@@ -68,3 +68,22 @@ export async function findPlays(
 
   return Play.find(query, projection, options ?? {});
 }
+
+export async function findPlaysWithDetails(
+  query: { playBy?: string, event?: string, challenge?: string },
+  projectionOptions?: IAnyObject,
+  options?: IAnyObject,
+) {
+  const projection: IAnyObject = projectionOptions ?? {};
+
+  return Play.find(query, projection, options ?? {})
+    .populate({
+      path: 'event',
+      select: 'name img', // Specify the fields you want to fetch
+      options: { strictPopulate: false },
+    })
+    .populate({
+      path: 'challenge',
+      select: 'logic title', // Specify the fields you want to fetch
+    });
+}

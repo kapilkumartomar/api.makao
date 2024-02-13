@@ -318,10 +318,10 @@ export async function handleSearchEventsUsersCategories(req: Request, res: Respo
       privacy: true,
     });
 
-    const eventsPromise = getEvents({ $and: [{ name: searchRegex, privacy: 'PUBLIC' }] });
-    const friendsEventsPromise = getEvents({ $and: [{ name: searchRegex, createdBy: { $in: friendIds }, privacy: ['PUBLIC', 'PRIVATE'] }] });
-    const privateSecretEventsPromise = getEvents({ $and: [{ name: searchRegex, invitedUsers: _id, privacy: ['PRIVATE', 'SECRET'] }] });
-    const categoriesPromise = findCategories({ $and: [{ title: searchRegex, status: true }] });
+    const eventsPromise = getEvents({ $and: [{ name: { $regex: searchRegex }, privacy: 'PUBLIC' }] });
+    const friendsEventsPromise = getEvents({ $and: [{ name: { $regex: searchRegex }, createdBy: { $in: friendIds }, privacy: ['PUBLIC', 'PRIVATE'] }] });
+    const privateSecretEventsPromise = getEvents({ $and: [{ name: { $regex: searchRegex }, invitedUsers: _id, privacy: ['PRIVATE', 'SECRET'] }] });
+    const categoriesPromise = findCategories({ $and: [{ title: { $regex: searchRegex }, status: true }] });
 
     const [users, events, friendsEvents, privateSecretEvents, categories] = await Promise.all([
       usersPromise, eventsPromise, friendsEventsPromise, privateSecretEventsPromise, categoriesPromise]);
