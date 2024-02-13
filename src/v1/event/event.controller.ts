@@ -181,6 +181,8 @@ export async function handleGetEvents(req: Request, res: Response) {
     rawQuery.createdBy = otherUserId || body?.userInfo?._id;
   }
 
+  const userId = body.userInfo._id;
+
   if (categoryId) rawQuery.category = categoryId;
 
   // If type is not organised, should be future, public
@@ -190,7 +192,7 @@ export async function handleGetEvents(req: Request, res: Response) {
   }
 
   try {
-    const events = await getEvents(rawQuery, basicQuery as IDBQuery);
+    const events = await getEvents(rawQuery, basicQuery as IDBQuery, userId);
 
     return res.status(200).json({
       message: 'Events fetched successfully',
@@ -251,6 +253,7 @@ export async function handleGetEvent(req: Request, res: Response) {
       data: singleEvent,
     });
   } catch (ex: any) {
+    console.error('Error : ', ex);
     return res.status(500).json({
       message: ex?.message ?? wentWrong,
     });

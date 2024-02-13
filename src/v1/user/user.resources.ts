@@ -10,7 +10,7 @@ export async function findUser(payload: { email?: string, privacy?: boolean, _id
 }
 
 export async function findUserById({ _id }: { _id: string }) {
-  return User.findById({ _id });
+  return User.findById({ _id }).populate('blacklistedUsers');
 }
 
 export async function createUser(payload: { email: string, password: string, username?: string }) {
@@ -216,4 +216,55 @@ export async function findOrganisersLeaderboard(timeQuery: IDBQuery, basicQuery:
 
   mongoose.set('debug', true);
   return Event.aggregate(aggregateQuery);
+}
+
+export async function addBlacklistUserEvents(body: any) {
+  mongoose.set('debug', true);
+
+  const { userInfo: { _id: userId }, blacklistUserId } = body;
+
+  if (userId === blacklistUserId) {
+    throw new Error('You cannot blacklist yourself.');
+  } else {
+    return User.findByIdAndUpdate(
+      userId,
+      {
+        $addToSet: { blacklistedUsers: new mongoose.Types.ObjectId(blacklistUserId) },
+      },
+      { new: true },
+    );
+  }
+}
+
+export async function removeBlacklistUserEvents(body: any) {
+  mongoose.set('debug', true);
+
+  const { userInfo: { _id: userId }, blacklistedUserId } = body;
+
+  return User.findByIdAndUpdate(
+    userId,
+    {
+      $pull: { blacklistedUsers: new mongoose.Types.ObjectId(blacklistedUserId) },
+    },
+    { new: true },
+  );
+}
+
+export async function IsBlacklistedInUserEvent(userId: string, eventId: string) {
+  mongoose.set('debug', true);
+  let isBlacklisted;
+
+  const currentEvent = await Event.findById({ _id: new mongoose.Types.ObjectId(eventId) });
+  if (currentEvent && currentEvent!.createdBy) {
+    const EventOrganiserUser = await User.findById({
+      _id: new mongoose.Types.ObjectId(currentEvent!.createdBy),
+    });
+    isBlacklisted = EventOrganiserUser?.blacklistedUsers.includes(
+      new mongoose.Types.ObjectId(userId),
+    );
+  } else {
+    throw new Error('Not Able to find out if user is blacklisted or not.');
+  }
+
+  return isBlacklisted;
 }
