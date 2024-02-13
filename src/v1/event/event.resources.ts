@@ -172,7 +172,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
             $group: {
               _id: null,
               totalReview: { $sum: 1 },
-              averageReveiw: { $avg: '$review' },
+              averageReview: { $avg: '$review' },
             },
           },
         ],
@@ -180,7 +180,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
     },
     {
       $addFields: {
-        averageReview: '$eventReview.averageReveiw',
+        averageReview: '$eventReview.averageReview',
       },
     },
   ]);
@@ -313,7 +313,7 @@ export async function getEvent(_id: string, userId: string) {
             $group: {
               _id: null,
               totalReview: { $sum: 1 },
-              averageReveiw: { $avg: '$review' },
+              averageReview: { $avg: '$review' },
             },
           },
         ],
@@ -322,7 +322,7 @@ export async function getEvent(_id: string, userId: string) {
     {
       $addFields: {
         commentsCount: { $size: '$comments' }, // 'comments' is the array field in the Event schema
-        averageReview: '$eventReview.averageReveiw',
+        averageReview: '$eventReview.averageReview',
       },
     },
     {
