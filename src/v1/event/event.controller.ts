@@ -9,7 +9,7 @@ import {
   IAnyObject, IDBQuery, makaoPlatformFee, wentWrong,
 } from '@util/helper';
 import { findUserFriends, findUserFriendsDetails, findUsers } from '@user/user.resources';
-import mongoose from 'mongoose';
+import mongoose, { AnyObject } from 'mongoose';
 import {
   createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
@@ -313,8 +313,8 @@ export async function handleSearchEventsUsersCategories(req: Request, res: Respo
 
     const usersPromise = findUsers({
       $or: [
-        // { email: searchRegex },
-        { username: searchRegex }],
+        { email: { $regex: searchRegex } },
+        { username: { $regex: searchRegex } }],
       privacy: true,
     });
 
@@ -329,7 +329,7 @@ export async function handleSearchEventsUsersCategories(req: Request, res: Respo
     return res.status(200).json({
       message: 'Details fetched successfully',
       data: {
-        users, userFriends: userFriends?.friends ?? [], events, friendsEvents, privateSecretEvents, categories,
+        users, userFriends: userFriends?.friends?.filter((val: AnyObject) => searchRegex.test(val?.username)) ?? [], events, friendsEvents, privateSecretEvents, categories,
       },
       // page: query?.page ? Number(query?.page) : 1,
       // pageSize: query?.pageSize ? Number(query?.pageSize) : 20,

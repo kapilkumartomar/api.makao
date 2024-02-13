@@ -2,7 +2,7 @@
 /* eslint-disable max-len */
 import mongoose, { ObjectId, Schema } from 'mongoose';
 import {
-  IAnyObject, IDBQuery, aggregateBasicQueryGenerator, basicQueryGenerator,
+  IAnyObject, IDBQuery, aggregateBasicQueryGenerator,
 } from '@util/helper';
 import Event, { IEvent } from './event.model';
 import Play from '../play/play.model';

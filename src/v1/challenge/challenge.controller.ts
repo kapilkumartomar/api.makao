@@ -76,7 +76,7 @@ export async function handleChallengeDecision(req: Request, res: Response) {
       challengePromise,
       findPlaysPromise]);
 
-    const event = await updateEvent(challenge?.event, { decisionTakenTime: new Date().toISOString() }, { select: '_id decisionTakenTime volume fees' }) as any;
+    const event = await updateEvent(challenge?.event, { decisionTakenTime: new Date() }, { select: '_id decisionTakenTime volume fees' }) as any;
 
     // For now the odd's already being calculated by removing the fee
 

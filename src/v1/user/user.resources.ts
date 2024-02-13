@@ -1,12 +1,17 @@
 import {
   BulkWriteOperation, IAnyObject, IDBQuery, aggregateBasicQueryGenerator,
 } from '@util/helper';
-import mongoose from 'mongoose';
+import mongoose, { AnyObject } from 'mongoose';
 import User from './user.model';
 import Event from '../event/event.model';
 
-export async function findUser(payload: { email?: string, privacy?: boolean, _id?: string }) {
-  return User.findOne(payload);
+export async function findUser(
+  payload: { email?: string, privacy?: boolean, _id?: string, claims?: AnyObject },
+  projection?: AnyObject,
+  options?: AnyObject,
+) {
+  mongoose.set('debug', true);
+  return User.findOne(payload, projection ?? {}, options ?? {});
 }
 
 export async function findUserById({ _id }: { _id: string }) {
@@ -267,4 +272,48 @@ export async function IsBlacklistedInUserEvent(userId: string, eventId: string) 
   }
 
   return isBlacklisted;
+}
+
+export async function findUserClaims(userId: string) {
+  mongoose.set('debug', true);
+  return User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(userId),
+      },
+    },
+
+    // filtering claims to only true
+    {
+      $project: {
+        _id: 1,
+        balance: 1,
+        claims: {
+          $filter: {
+            input: '$claims',
+            as: 'claims',
+            cond: { $eq: ['$$claims.status', false] },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        balance: 1,
+        claims: {
+          $sortArray: { input: '$claims', sortBy: { createdAt: -1 } },
+        },
+      },
+    },
+
+    // limiting data
+    {
+      $project: {
+        balance: 1,
+        claims: {
+          $slice: ['$claims', 50],
+        },
+      },
+    },
+  ]);
 }

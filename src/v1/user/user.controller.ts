@@ -10,9 +10,10 @@ import {
 import fs from 'fs/promises';
 import {
   createUser, findFriendsLeaderboard, findOrganisersLeaderboard, findOneAndUpdateUser,
-  findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard,
+  findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard, findUserClaims,
   addBlacklistUserEvents, removeBlacklistUserEvents, IsBlacklistedInUserEvent,
 } from './user.resources';
+import { findPlays } from '../play/play.resources';
 
 const BCRYPT_SALT = 10;
 
@@ -22,7 +23,7 @@ dirname = dirname.split(process.env.NODE_ENV === 'production' ? 'dist' : 'src')[
 export async function handleUserSignIn(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
-    const query: any = await findUser({ email });
+    const query: any = await findUser({ email }, { _id: 1, password: 1 });
     if (!query?._id) {
       return res.status(400).json({
         message: "Email does't exist",
@@ -394,6 +395,41 @@ export async function handleGetIsBlacklisted(req: Request, res: Response) {
   } catch (err: any) {
     return res.status(500).json({
       message: err?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetWallet(req: Request, res: Response) {
+  try {
+    const { body } = req;
+    const user: any = await findUserClaims(
+      body?.userInfo?._id,
+    );
+
+    const plays = await findPlays(
+      { playBy: body?.userInfo?._id },
+      {
+        amount: 1, _id: 1, createdAt: 1, type: 'PLAY',
+      },
+      { sort: { createdAt: -1 }, limit: 100 },
+    );
+
+    let transactions: any[] = [...plays];
+    if (user && Array.isArray(user) && user.length && user[0].claims
+      && Array.isArray(user[0].claims)) {
+      transactions = transactions.concat(user[0].claims);
+      delete user[0].claims;
+    }
+
+    transactions.sort((a: any, b: any) => b.createdAt - a.createdAt);
+
+    return res.status(200).json({
+      message: 'Wallet details fetched successfully',
+      data: { user, transactions },
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
     });
   }
 }
