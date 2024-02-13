@@ -34,7 +34,7 @@ export async function handleCreateEvent(req: Request, res: Response) {
 
   try {
     const { files, body } = req as any;
-    let imgName = ''
+    let imgName = '';
     // conditionally checking for image
     if (files && Array.isArray(files?.img) && files?.img[0]) {
       const imageFile: any = files?.img[0];
@@ -48,7 +48,7 @@ export async function handleCreateEvent(req: Request, res: Response) {
       );
     }
 
-    console.log('image name')
+    console.log('image name');
     const reqChallenges = JSON.parse(body.challenges);
     delete body.challenges;
     const eventPromise = createEvent({ ...body, img: imgName, createdBy: body.userInfo?._id });
