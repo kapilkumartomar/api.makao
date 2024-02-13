@@ -62,8 +62,9 @@ export async function findPlay(query: { playBy?: string, event?: string, challen
 export async function findPlays(
   query: { playBy?: string, event?: string, challenge?: string },
   projectionOptions?: IAnyObject,
+  options?: IAnyObject,
 ) {
   const projection: IAnyObject = projectionOptions ?? {};
 
-  return Play.find(query, projection);
+  return Play.find(query, projection, options ?? {});
 }

@@ -10,6 +10,7 @@ import {
   handleGetOrganisersLeaderboard,
   handleGetLeaderboard,
   handleGetOtherUser,
+  handleGetWallet,
 } from './user.controller';
 import {
   validateEmail,
@@ -29,6 +30,7 @@ routes.get('/search', handleUsersSearch);
 routes.post('/friend', auth, handleUserAddFriend);
 routes.get('/friends', auth, handleGetUserFriends);
 routes.get('/leaderboard', auth, handleGetLeaderboard);
+routes.get('/wallet', auth, handleGetWallet);
 
 routes.get('/:_id', auth, handleGetOtherUser);
 
