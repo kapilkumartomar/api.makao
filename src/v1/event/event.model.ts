@@ -94,6 +94,7 @@ const eventSchema = new Schema<IEvent>({
   },
   createdBy: {
     type: Schema.Types.ObjectId,
+    required: true,
   },
   comments: [commentSchema], // Embedded comments array
   invitations: [{ type: Schema.Types.ObjectId, ref: 'User' }], // array of user that are invited

@@ -2,10 +2,11 @@
 /* eslint-disable max-len */
 import mongoose, { ObjectId, Schema } from 'mongoose';
 import {
-  IAnyObject, IDBQuery, aggregateBasicQueryGenerator, basicQueryGenerator,
+  IAnyObject, IDBQuery, aggregateBasicQueryGenerator,
 } from '@util/helper';
 import Event, { IEvent } from './event.model';
 import Play from '../play/play.model';
+import { findUserById } from '../user/user.resources';
 
 export async function createEvent(payload: IEvent) {
   return Event.create(payload);
@@ -76,9 +77,22 @@ export async function updateEvent(
   );
 }
 
-export async function getEvents(query: IDBQuery, basicQuery?: IDBQuery) {
+export async function getEvents(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
   mongoose.set('debug', true);
-  return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
+  const currentUser = await findUserById({ _id: userId });
+  const currentUserBlacklist = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
+  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift({ $match: { ...query, ...(query.createdBy ? { createdBy: new mongoose.Types.ObjectId(query.createdBy as string) } : {}) } });
+  return Event.aggregate([
+    {
+      $match: {
+        createdBy: { $nin: currentUserBlacklist },
+      },
+    },
+    ...aggregateQuery,
+  ]);
+
+  // return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
 }
 
 export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
@@ -97,6 +111,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
         playersCount: 1,
         createdAt: 1,
         decisionTakenTime: 1,
+        createdBy: 1,
       },
     },
     {
@@ -157,7 +172,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
             $group: {
               _id: null,
               totalReview: { $sum: 1 },
-              averageReveiw: { $avg: '$review' },
+              averageReview: { $avg: '$review' },
             },
           },
         ],
@@ -165,7 +180,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
     },
     {
       $addFields: {
-        averageReview: '$eventReview.averageReveiw',
+        averageReview: '$eventReview.averageReview',
       },
     },
   ]);
@@ -298,7 +313,7 @@ export async function getEvent(_id: string, userId: string) {
             $group: {
               _id: null,
               totalReview: { $sum: 1 },
-              averageReveiw: { $avg: '$review' },
+              averageReview: { $avg: '$review' },
             },
           },
         ],
@@ -307,7 +322,7 @@ export async function getEvent(_id: string, userId: string) {
     {
       $addFields: {
         commentsCount: { $size: '$comments' }, // 'comments' is the array field in the Event schema
-        averageReview: '$eventReview.averageReveiw',
+        averageReview: '$eventReview.averageReview',
       },
     },
     {
@@ -340,6 +355,7 @@ export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery
         volume: 1,
         playersCount: 1,
         createdAt: 1,
+        createdBy: 1,
       },
     },
     {

@@ -11,6 +11,7 @@ import fs from 'fs/promises';
 import {
   createUser, findFriendsLeaderboard, findOrganisersLeaderboard, findOneAndUpdateUser,
   findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard, findUserClaims,
+  addBlacklistUserEvents, removeBlacklistUserEvents, IsBlacklistedInUserEvent,
 } from './user.resources';
 import { findPlays } from '../play/play.resources';
 
@@ -349,6 +350,51 @@ export async function handleGetLeaderboard(req: Request, res: Response) {
   } catch (ex: any) {
     return res.status(500).json({
       message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handlePostBlacklist(req: Request, res: Response) {
+  try {
+    const update: any = await addBlacklistUserEvents(req.body);
+    return res.status(200).json({
+      message: 'This Organizer is Blacklisted successfully',
+      data: update,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handlePatchUnBlacklist(req: Request, res: Response) {
+  try {
+    const update: any = await removeBlacklistUserEvents(req.body);
+    return res.status(200).json({
+      message: 'This Organizer is Blacklisted successfully',
+      data: update,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetIsBlacklisted(req: Request, res: Response) {
+  try {
+    const { userInfo: { _id: userId } } = req.body;
+    const { eventId } = req.params;
+
+    const isBlacklisted: boolean | undefined = await IsBlacklistedInUserEvent(userId, eventId);
+    return res.status(200).json({
+      message: isBlacklisted ? 'This User is Blacklisted in this Event.' : 'User is whitelisted in this Event.',
+      data: { isBlacklisted },
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err?.message ?? wentWrong,
     });
   }
 }
