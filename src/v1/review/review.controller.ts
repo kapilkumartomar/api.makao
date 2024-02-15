@@ -46,7 +46,7 @@ export async function handlePostReview(req: Request, res: Response) {
     // } else if (givenReview === 1) {
     //     user.userTrustNote = Math.min(maxTrustNote, currentTrustNote + (currentTrustNote * baseChangePercentage));
     // }
-      
+
     const maxTrustNote = 5; // Maximum trust note
     const minTrustNote = 0; // Minimum trust note
     const baseChangePercentage = 0.05;
@@ -58,8 +58,8 @@ export async function handlePostReview(req: Request, res: Response) {
           {
             $cond: {
               if: { $eq: [givenReview, 0] },
-              then: { $max: [minTrustNote, { $subtract: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }]},
-              else: { $min: [maxTrustNote, { $add: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }]}
+              then: { $max: [minTrustNote, { $subtract: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }] },
+              else: { $min: [maxTrustNote, { $add: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }] },
             },
           },
         },
