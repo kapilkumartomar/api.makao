@@ -8,8 +8,10 @@ import fs from 'fs/promises';
 import {
   IAnyObject, IDBQuery, makaoPlatformFee, wentWrong,
 } from '@util/helper';
-import { findUserFriends, findUserFriendsDetails, findUsers } from '@user/user.resources';
-import mongoose, { AnyObject } from 'mongoose';
+import {
+  findUserById, findUserFriends, findUserFriendsDetails, findUsers,
+} from '@user/user.resources';
+import mongoose, { AnyObject, Types } from 'mongoose';
 import {
   createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
@@ -192,7 +194,14 @@ export async function handleGetEvents(req: Request, res: Response) {
   }
 
   try {
-    const events = await getEvents(rawQuery, basicQuery as IDBQuery, userId);
+    {
+      // restricting blacklisted user's events by this below written query.
+      const currentUser = await findUserById({ _id: userId });
+      const currentUserBlacklist: Types.ObjectId[] = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
+      rawQuery.currentUserBlacklist = currentUserBlacklist;
+    }
+
+    const events = await getEvents(rawQuery, basicQuery as IDBQuery);
 
     return res.status(200).json({
       message: 'Events fetched successfully',
