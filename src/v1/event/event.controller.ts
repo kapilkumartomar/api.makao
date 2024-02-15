@@ -8,7 +8,9 @@ import fs from 'fs/promises';
 import {
   IAnyObject, IDBQuery, makaoPlatformFee, wentWrong,
 } from '@util/helper';
-import { findUserById, findUserFriends, findUserFriendsDetails, findUsers } from '@user/user.resources';
+import {
+  findUserById, findUserFriends, findUserFriendsDetails, findUsers,
+} from '@user/user.resources';
 import mongoose, { AnyObject, Types } from 'mongoose';
 import {
   createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,

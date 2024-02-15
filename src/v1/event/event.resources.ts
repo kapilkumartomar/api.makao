@@ -6,7 +6,6 @@ import {
 } from '@util/helper';
 import Event, { IEvent } from './event.model';
 import Play from '../play/play.model';
-import { findUserById } from '../user/user.resources';
 
 export async function createEvent(payload: IEvent) {
   return Event.create(payload);
