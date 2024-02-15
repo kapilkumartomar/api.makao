@@ -50,7 +50,8 @@ export async function handlePostReview(req: Request, res: Response) {
     const maxTrustNote = 5; // Maximum trust note
     const minTrustNote = 0; // Minimum trust note
     const baseChangePercentage = 0.05;
-    const updateUserTrustNote: any = await findOneAndUpdateUser(userId, [
+
+    await findOneAndUpdateUser(userId, [
       {
         $set:
         {
