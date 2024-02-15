@@ -41,16 +41,20 @@ export async function handlePostReview(req: Request, res: Response) {
     const reviews: any = await postReview(req.body);
     const givenReview = reviews[0].review;
     // user-trust-score logic
-    //   if (givenReview === 0) {
-    //     user.userTrustNote = Math.max(minTrustNote, currentTrustNote - (currentTrustNote * baseChangePercentage));
+    // if (givenReview === 0) {
+    //   user.userTrustNote = Math.max(
+    //     minTrustNote,
+    //     currentTrustNote - currentTrustNote * baseChangePercentage
+    //   );
     // } else if (givenReview === 1) {
-    //     user.userTrustNote = Math.min(maxTrustNote, currentTrustNote + (currentTrustNote * baseChangePercentage));
+    //   user.userTrustNote = Math.min(
+    //     maxTrustNote,
+    //     currentTrustNote + currentTrustNote * baseChangePercentage
+    //   );
     // }
-
     const maxTrustNote = 5; // Maximum trust note
     const minTrustNote = 0; // Minimum trust note
     const baseChangePercentage = 0.05;
-
     await findOneAndUpdateUser(userId, [
       {
         $set:
