@@ -39,6 +39,10 @@ const userSchema = new mongoose.Schema({
     type: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     default: [],
   },
+  userTrustNote: {
+    type: Number,
+    default: 2.5,
+  },
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt fields
   toJSON: { getters: true, virtuals: false },
