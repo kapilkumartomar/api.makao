@@ -6,6 +6,7 @@ import { auth } from '@config/auth';
 import {
   handleCreateComment,
   handleCreateEvent,
+  handleEventDecsion,
   handleGetComments,
   handleGetEvent,
   handleGetEvents,
@@ -52,36 +53,16 @@ routes.get(
   handleSearchEventsUsersCategories,
 );
 
-routes.get(
-  '/:_id',
-  auth,
-  handleGetEvent,
-);
+routes.get('/:_id', auth, handleGetEvent);
 
-routes.patch(
-  '/:_id',
-  auth,
-  validate(validateUpdateEvent),
-  handleUpdateEvent,
-);
+routes.patch('/:_id', auth, validate(validateUpdateEvent), handleUpdateEvent);
 
-routes.post(
-  '/:_id/comment',
-  auth,
-  validate(validateCreateComment),
-  handleCreateComment,
-);
+routes.post('/:_id/comment', auth, validate(validateCreateComment), handleCreateComment);
 
-routes.get(
-  '/:_id/comment',
-  auth,
-  handleGetComments,
-);
+routes.get('/:_id/comment', auth, handleGetComments);
 
-routes.get(
-  '/:_id/players',
-  auth,
-  handleGetPlayers,
-);
+routes.get('/:_id/players', auth, handleGetPlayers);
+
+routes.post('/:_id/decision', auth, handleEventDecsion);
 
 module.exports = routes;

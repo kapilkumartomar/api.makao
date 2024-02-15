@@ -10,10 +10,8 @@ import {
   createPlay, getEventVolume, findPlay, findOneAndUpdatePlay, getEventChallengesVolume,
 } from './play.resources';
 import { findChallenges, updateChallengeBulkwrite } from '../challenge/challenge.resources';
-import { findEventById, updateEvent } from '../event/event.resources';
+import { updateEvent } from '../event/event.resources';
 import { createNotifications } from '../notification/notification.resources';
-
-const { ObjectId } = mongoose.Types;
 
 export async function handleCreatePlay(req: Request, res: Response) {
   const session = await mongoose.startSession();
@@ -21,22 +19,27 @@ export async function handleCreatePlay(req: Request, res: Response) {
   try {
     const { body } = req;
 
-    // checking for organiser and
-    const eventInfoPromise = await findEventById(body?.event);
+    // checking for organiser
+    // const eventInfoPromise = await findEventById(body?.event);
 
     // checking for player already play for a challenge
     const alreadyPlayedForChallengePromise = findPlay({ playBy: body.userInfo?._id, challenge: body?.challenge });
     // checking for player before creating a play
     const alreadyPlayerPromise = findPlay({ playBy: body.userInfo?._id, event: body?.event });
 
-    const [eventInfo, alreadyPlayedForChallenge, alreadyPlayer] = await Promise.all([eventInfoPromise, alreadyPlayedForChallengePromise, alreadyPlayerPromise]);
+    const [
+      // eventInfo,
+      alreadyPlayedForChallenge, alreadyPlayer] = await Promise.all([
+      // eventInfoPromise,
+      alreadyPlayedForChallengePromise, alreadyPlayerPromise]);
 
     // Organiser is not allowed to play for event he created
-    if (eventInfo?.createdBy.equals(new ObjectId(body?.userInfo?._id))) {
-      return res.status(500).json({
-        message: 'Organiser is not allowed to play for event he created',
-      });
-    }
+
+    // if (eventInfo?.createdBy.equals(new ObjectId(body?.userInfo?._id))) {
+    //   return res.status(500).json({
+    //     message: 'Organiser is not allowed to play for event he created',
+    //   });
+    // }
 
     // logic regaring if User alreay played for challenge, then add sum otherwise creating new play
     let play: any;
@@ -96,9 +99,9 @@ export async function handleCreatePlay(req: Request, res: Response) {
     // Notification to the organiser on event being played by another user
     createNotifications([{
       type: 'ORGANISED_EVENT',
-      for: eventInfo?.createdBy,
+      for: updatedEvent?.createdBy,
       metaData: {
-        eventId: eventInfo?._id,
+        eventId: updatedEvent?._id,
         userId: new mongoose.Types.ObjectId(body.userInfo?._id),
         amount: body.amount,
       },
