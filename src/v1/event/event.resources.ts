@@ -77,16 +77,15 @@ export async function updateEvent(
   );
 }
 
-export async function getEvents(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
+export async function getEvents(query: IDBQuery, basicQuery: IDBQuery) {
   mongoose.set('debug', true);
-  const currentUser = await findUserById({ _id: userId });
-  const currentUserBlacklist = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
+  const { currentUserBlacklist, createdBy } = query;
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
-  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift({ $match: { ...query, ...(query.createdBy ? { createdBy: new mongoose.Types.ObjectId(query.createdBy as string) } : {}) } });
+  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift({ $match: { ...query, ...(createdBy ? { createdBy: new mongoose.Types.ObjectId(createdBy as string) } : {}) } });
   return Event.aggregate([
     {
       $match: {
-        createdBy: { $nin: currentUserBlacklist },
+        createdBy: { $nin: currentUserBlacklist ?? [] },
       },
     },
     ...aggregateQuery,
