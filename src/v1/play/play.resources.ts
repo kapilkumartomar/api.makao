@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { AnyObject } from 'mongoose';
 import { IAnyObject } from '@util/helper';
 import Play, { IPlay } from './play.model';
 
@@ -55,12 +55,36 @@ export async function getEventChallengesVolume({ eventId }: { eventId: string })
   );
 }
 
+export async function getChallengesVolume({ challengeIds }: { challengeIds: string[] }) {
+  return Play.aggregate(
+    [
+      {
+        $match: {
+          challenge: { $in: challengeIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          challengesTotalVolume: { $sum: '$amount' },
+        },
+      },
+      // {
+      //   $project: {
+      //     _id: 1, // Exclude _id from the result
+      //     challengeVolume: 1,
+      //   },
+      // },
+    ],
+  );
+}
+
 export async function findPlay(query: { playBy?: string, event?: string, challenge?: string }) {
   return Play.findOne(query);
 }
 
 export async function findPlays(
-  query: { playBy?: string, event?: string, challenge?: string },
+  query: { playBy?: string, event?: string, challenge?: string | AnyObject },
   projectionOptions?: IAnyObject,
   options?: IAnyObject,
 ) {

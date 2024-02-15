@@ -1,25 +1,27 @@
 /* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
 /* eslint-disable no-console */
+/* eslint-disable no-unsafe-optional-chaining */
 
 import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
 import {
-  IAnyObject, IDBQuery, makaoPlatformFee, wentWrong,
+  IAnyObject, IDBQuery, makaoPlatformFee, makaoPlatformFeePercentage, wentWrong,
 } from '@util/helper';
 import {
-  findUserById, findUserFriends, findUserFriendsDetails, findUsers,
+  findUserById, findUserFriends, findUserFriendsDetails, findUsers, updateUsersBulkwrite,
 } from '@user/user.resources';
 import mongoose, { AnyObject, Types } from 'mongoose';
 import {
   createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
-import { createChallenges } from '../challenge/challenge.resources';
+import { createChallenges, updateChallenges } from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
 import { IEvent } from './event.model';
 import { createNotifications } from '../notification/notification.resources';
 import { findCategories } from '../category/category.resources';
+import { findPlays, getChallengesVolume } from '../play/play.resources';
 
 let dirname = __dirname;
 console.log('dirname', dirname);
@@ -347,5 +349,114 @@ export async function handleSearchEventsUsersCategories(req: Request, res: Respo
     return res.status(500).json({
       message: ex?.message ?? wentWrong,
     });
+  }
+}
+
+export async function handleEventDecsion(req: Request, res: Response) {
+  // Create a session for the transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { body, params: { _id } } = req;
+    const { playStatus, winnerChallenges } = body ?? {};
+
+    const challengePromise: any = updateChallenges({ _id: { $in: winnerChallenges } }, { playStatus });
+    // change challenge status to loss
+    const challengeLossPromise: any = updateChallenges({ _id: { $nin: winnerChallenges } }, { playStatus: 'LOSS' });
+
+    // Find plays
+    const findPlaysPromise = findPlays({ challenge: { $in: winnerChallenges } }, {
+      _id: 1, playBy: 1, amount: 1, event: 1, challenge: 1,
+    });
+
+    const [challenge, plays] = await Promise.all([
+      challengePromise,
+      findPlaysPromise,
+      challengeLossPromise]);
+
+    const event = await updateEvent(_id as any, { decisionTakenTime: new Date() }, { select: '_id decisionTakenTime volume fees' }) as any;
+    const challengesVolume = await getChallengesVolume({ challengeIds: winnerChallenges });
+    const challengesTotalVolume = Array.isArray(challengesVolume) && challengesVolume[0]?.challengesTotalVolume ? challengesVolume[0]?.challengesTotalVolume : 1;
+
+    // calculated the fee
+    const organiserFee = event.volume * (event?.fees ? event?.fees / 100 : 0);
+    const fees = (event.volume * makaoPlatformFeePercentage) + organiserFee;
+
+    // updating the Users's balance and claims
+    const balanceUpdate: any = plays.map((val) => {
+      const profitLoss = (Number((event.volume - fees) / challengesTotalVolume) * Number(val?.amount)) - Number(val?.amount);
+
+      if (profitLoss > 0) {
+        return {
+          updateOne: {
+            filter: { _id: val?.playBy },
+            update: {
+              $inc: { balance: val?.amount },
+              // max Potential win to calculate to win amount
+              $push: {
+                claims: {
+                  amount: profitLoss,
+                  challenge: val?.challenge,
+                },
+              },
+            },
+          },
+        };
+      }
+      return {
+        updateOne: {
+          filter: { _id: val?.playBy },
+          update: {
+            // reducing fee amount from balances
+            $inc: { balance: Number(val?.amount) + profitLoss }, // profitloss value is in - negative, that's why doing + plus
+          },
+        },
+      };
+    });
+
+    // Organiser balance update by fees
+    balanceUpdate.push({
+      updateOne: {
+        filter: { _id: event?.createdBy },
+        update: {
+          $inc: { balance: organiserFee ?? 0 },
+        },
+      },
+    });
+
+    // Makao balance udpate by platform fee pending
+
+    await updateUsersBulkwrite(balanceUpdate);
+
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+
+    const winNofications = plays.map((val) => ({
+      type: 'PLAY_STATUS',
+      for: val?.playBy,
+      metaData: {
+        eventId: val?.event,
+        status: playStatus,
+      },
+    }));
+
+    createNotifications(winNofications);
+
+    return res.status(200).json({
+      message: 'Event decision taken successfully',
+      data: { challenge, event },
+    });
+  } catch (ex: any) {
+    // If there's an error, rollback the transaction
+    await session.abortTransaction();
+    console.error('Transaction aborted:', ex);
+
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  } finally {
+    // End the session
+    session.endSession();
   }
 }
