@@ -6,7 +6,9 @@ import { auth } from '@config/auth';
 import {
   handleCreateComment,
   handleCreateEvent,
-  handleEventDecsion,
+  handleEventDecisionRefund,
+  handleEventDecisionWin,
+  handleEventUserRefund,
   handleGetComments,
   handleGetEvent,
   handleGetEvents,
@@ -63,6 +65,8 @@ routes.get('/:_id/comment', auth, handleGetComments);
 
 routes.get('/:_id/players', auth, handleGetPlayers);
 
-routes.post('/:_id/decision', auth, handleEventDecsion);
+routes.post('/:_id/decision/win', auth, handleEventDecisionWin);
+routes.post('/:_id/decision/refund', auth, handleEventDecisionRefund);
+routes.post('/:_id/user/:userId/refund', auth, handleEventUserRefund);
 
 module.exports = routes;

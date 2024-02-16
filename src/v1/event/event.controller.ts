@@ -178,7 +178,7 @@ export async function handleGetEvents(req: Request, res: Response) {
     type, categoryId, otherUserId, ...basicQuery
   } = query ?? {};
 
-  const rawQuery: IDBQuery = {};
+  const rawQuery: IAnyObject = {};
   if (type === 'ORGANISED') {
     // checking between other user and same user
     console.log('organs', otherUserId, otherUserId || body?.userInfo?._id);
@@ -201,7 +201,11 @@ export async function handleGetEvents(req: Request, res: Response) {
       const currentUser = await findUserById({ _id: userId });
       const currentUserBlacklist: Types.ObjectId[] = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
       const { createdBy } = rawQuery;
-      rawQuery.createdBy = { ...(createdBy || {}), $nin: currentUserBlacklist };
+      if (createdBy) {
+        rawQuery.createdBy = {
+          ...createdBy, $nin: currentUserBlacklist,
+        };
+      } else rawQuery.createdBy = { $nin: currentUserBlacklist };
     }
 
     const events = await getEvents(rawQuery, basicQuery as IDBQuery);
@@ -329,7 +333,7 @@ export async function handleSearchEventsUsersCategories(req: Request, res: Respo
         { username: { $regex: searchRegex } }],
       privacy: true,
     });
-      // restricting blacklisted user's events by this below written query.
+    // restricting blacklisted user's events by this below written query.
     const currentUser = await findUserById({ _id });
     const currentUserBlacklist: Types.ObjectId[] = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
 
@@ -360,16 +364,16 @@ export async function handleSearchEventsUsersCategories(req: Request, res: Respo
   }
 }
 
-export async function handleEventDecsion(req: Request, res: Response) {
+export async function handleEventDecisionWin(req: Request, res: Response) {
   // Create a session for the transaction
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const { body, params: { _id } } = req;
-    const { playStatus, winnerChallenges } = body ?? {};
+    const { winnerChallenges } = body ?? {};
 
-    const challengePromise: any = updateChallenges({ _id: { $in: winnerChallenges } }, { playStatus });
+    const challengePromise: any = updateChallenges({ _id: { $in: winnerChallenges } }, { playStatus: 'WIN' });
     // change challenge status to loss
     const challengeLossPromise: any = updateChallenges({ _id: { $nin: winnerChallenges } }, { playStatus: 'LOSS' });
 
@@ -440,19 +444,153 @@ export async function handleEventDecsion(req: Request, res: Response) {
     // If everything is successful, commit the transaction
     await session.commitTransaction();
 
-    const winNofications = plays.map((val) => ({
+    const winNotifications = plays.map((val) => ({
       type: 'PLAY_STATUS',
       for: val?.playBy,
       metaData: {
         eventId: val?.event,
-        status: playStatus,
+        status: 'WIN',
       },
     }));
 
-    createNotifications(winNofications);
+    createNotifications(winNotifications);
 
     return res.status(200).json({
       message: 'Event decision taken successfully',
+      data: { challenge, event },
+    });
+  } catch (ex: any) {
+    // If there's an error, rollback the transaction
+    await session.abortTransaction();
+    console.error('Transaction aborted:', ex);
+
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  } finally {
+    // End the session
+    session.endSession();
+  }
+}
+
+export async function handleEventDecisionRefund(req: Request, res: Response) {
+  // Create a session for the transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { params: { _id } } = req;
+
+    const challengePromise: any = updateChallenges({ event: _id }, { playStatus: 'REFUND' });
+
+    // Find plays
+    const findPlaysPromise = findPlays({ event: _id }, {
+      _id: 1, playBy: 1, amount: 1, event: 1, challenge: 1,
+    });
+
+    const [challenge, plays] = await Promise.all([
+      challengePromise,
+      findPlaysPromise,
+    ]);
+
+    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), volume: 0 }, { select: '_id decisionTakenTime volume fees' }) as any;
+
+    // updating the Users's balance
+    const balanceUpdate: any = plays.map((val) => ({
+      updateOne: {
+        filter: { _id: val?.playBy },
+        update: {
+          $inc: { balance: Number(val?.amount) },
+        },
+      },
+    }));
+
+    await updateUsersBulkwrite(balanceUpdate);
+
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+
+    const refundNotifications = plays.map((val) => ({
+      type: 'PLAY_STATUS',
+      for: val?.playBy,
+      metaData: {
+        eventId: val?.event,
+        status: 'REFUND',
+      },
+    }));
+
+    createNotifications(refundNotifications);
+
+    return res.status(200).json({
+      message: 'Event decision taken successfully',
+      data: { challenge, event },
+    });
+  } catch (ex: any) {
+    // If there's an error, rollback the transaction
+    await session.abortTransaction();
+    console.error('Transaction aborted:', ex);
+
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  } finally {
+    // End the session
+    session.endSession();
+  }
+}
+
+export async function handleEventUserRefund(req: Request, res: Response) {
+  // Create a session for the transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { params: { _id, userId } } = req;
+
+    const challengePromise: any = updateChallenges({ event: _id }, { playStatus: 'REFUND' });
+
+    // Find plays
+    const findPlaysPromise = findPlays({ event: _id, playBy: userId }, {
+      _id: 1, playBy: 1, amount: 1, event: 1, challenge: 1,
+    });
+
+    const [challenge, plays] = await Promise.all([
+      challengePromise,
+      findPlaysPromise,
+    ]);
+
+    const totalRefundedAmount = plays.reduce((accumulator, play) => accumulator + Number(play?.amount ?? 0), 0);
+
+    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), $inc: { volume: -totalRefundedAmount } }, { select: '_id decisionTakenTime volume fees' }) as any;
+
+    // updating the Users's balance
+    const balanceUpdate: any = plays.map((val) => ({
+      updateOne: {
+        filter: { _id: val?.playBy },
+        update: {
+          $inc: { balance: Number(val?.amount) },
+        },
+      },
+    }));
+
+    await updateUsersBulkwrite(balanceUpdate);
+
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+
+    const refundNotifications = plays.map((val) => ({
+      type: 'PLAY_STATUS',
+      for: val?.playBy,
+      metaData: {
+        eventId: val?.event,
+        status: 'REFUND',
+      },
+    }));
+
+    createNotifications(refundNotifications);
+
+    return res.status(200).json({
+      message: 'User refunded successfully',
       data: { challenge, event },
     });
   } catch (ex: any) {
