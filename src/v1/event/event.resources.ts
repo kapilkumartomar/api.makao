@@ -3,6 +3,7 @@
 import mongoose, { ObjectId, Schema } from 'mongoose';
 import {
   IAnyObject, IDBQuery, aggregateBasicQueryGenerator,
+  basicQueryGenerator,
 } from '@util/helper';
 import Event, { IEvent } from './event.model';
 import Play from '../play/play.model';
@@ -78,19 +79,7 @@ export async function updateEvent(
 
 export async function getEvents(query: IDBQuery, basicQuery: IDBQuery) {
   mongoose.set('debug', true);
-  const { currentUserBlacklist, createdBy } = query;
-  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
-  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift({ $match: { ...query, ...(createdBy ? { createdBy: new mongoose.Types.ObjectId(createdBy as string) } : {}) } });
-  return Event.aggregate([
-    {
-      $match: {
-        createdBy: { $nin: currentUserBlacklist ?? [] },
-      },
-    },
-    ...aggregateQuery,
-  ]);
-
-  // return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
+  return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
 }
 
 export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
