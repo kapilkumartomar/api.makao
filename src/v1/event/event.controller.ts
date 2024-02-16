@@ -180,7 +180,7 @@ export async function handleGetEvents(req: Request, res: Response) {
   if (type === 'ORGANISED') {
     // checking between other user and same user
     console.log('organs', otherUserId, otherUserId || body?.userInfo?._id);
-    rawQuery.createdBy = otherUserId || body?.userInfo?._id;
+    rawQuery.createdBy = { $eq: otherUserId || body?.userInfo?._id };
   }
 
   const userId = body.userInfo._id;
@@ -198,7 +198,8 @@ export async function handleGetEvents(req: Request, res: Response) {
       // restricting blacklisted user's events by this below written query.
       const currentUser = await findUserById({ _id: userId });
       const currentUserBlacklist: Types.ObjectId[] = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
-      rawQuery.currentUserBlacklist = currentUserBlacklist;
+      const { createdBy } = rawQuery;
+      rawQuery.createdBy = { ...(createdBy || {}), $nin: currentUserBlacklist };
     }
 
     const events = await getEvents(rawQuery, basicQuery as IDBQuery);
@@ -326,10 +327,17 @@ export async function handleSearchEventsUsersCategories(req: Request, res: Respo
         { username: { $regex: searchRegex } }],
       privacy: true,
     });
+      // restricting blacklisted user's events by this below written query.
+    const currentUser = await findUserById({ _id });
+    const currentUserBlacklist: Types.ObjectId[] = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
 
-    const eventsPromise = getEvents({ $and: [{ name: { $regex: searchRegex }, privacy: 'PUBLIC' }] });
-    const friendsEventsPromise = getEvents({ $and: [{ name: { $regex: searchRegex }, createdBy: { $in: friendIds }, privacy: ['PUBLIC', 'PRIVATE'] }] });
-    const privateSecretEventsPromise = getEvents({ $and: [{ name: { $regex: searchRegex }, invitedUsers: _id, privacy: ['PRIVATE', 'SECRET'] }] });
+    const eventsPromise = getEvents({ $and: [{ name: { $regex: searchRegex }, createdBy: { $nin: currentUserBlacklist }, privacy: 'PUBLIC' }] });
+    const friendsEventsPromise = getEvents({ $and: [{ name: { $regex: searchRegex }, createdBy: { $in: friendIds, $nin: currentUserBlacklist }, privacy: ['PUBLIC', 'PRIVATE'] }] });
+    const privateSecretEventsPromise = getEvents({
+      $and: [{
+        name: { $regex: searchRegex }, createdBy: { $nin: currentUserBlacklist }, invitedUsers: _id, privacy: ['PRIVATE', 'SECRET'],
+      }],
+    });
     const categoriesPromise = findCategories({ $and: [{ title: { $regex: searchRegex }, status: true }] });
 
     const [users, events, friendsEvents, privateSecretEvents, categories] = await Promise.all([
