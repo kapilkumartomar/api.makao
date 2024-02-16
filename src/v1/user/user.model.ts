@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     get: obfuscate,
   },
+  instagramLink: String,
   friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   blacklistedUsers: {
     type: [{ type: Schema.Types.ObjectId, ref: 'User' }],

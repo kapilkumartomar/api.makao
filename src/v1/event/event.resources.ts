@@ -77,7 +77,7 @@ export async function updateEvent(
   );
 }
 
-export async function getEvents(query: IDBQuery, basicQuery: IDBQuery) {
+export async function getEvents(query: IDBQuery, basicQuery?: IDBQuery) {
   mongoose.set('debug', true);
   return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
 }
@@ -236,6 +236,7 @@ export async function getEvent(_id: string, userId: string) {
               username: 1,
               friends: 1,
               balance: 1,
+              instagramLink: 1,
             },
           },
           // Checing if user's friends are playing
@@ -376,7 +377,7 @@ export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery
 }
 
 export async function findEventPlayers(eventId: string, basicQuery: any) {
-  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+  const aggregateQuery: any = [...aggregateBasicQueryGenerator({ sortAt: 'amount', ...basicQuery })];
 
   return Play.aggregate([
     { $match: { event: new mongoose.Types.ObjectId(eventId) } },

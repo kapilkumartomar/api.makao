@@ -13,6 +13,7 @@ export interface IEvent extends Document {
   name: string;
   description: string;
   videoLink?: string;
+  discordLink?: string;
   img?: string;
   privacy: 'PUBLIC' | 'PRIVATE' | 'SECRET';
   startTime: Date;
@@ -43,6 +44,9 @@ const eventSchema = new Schema<IEvent>({
     required: true,
   },
   videoLink: {
+    type: String,
+  },
+  discordLink: {
     type: String,
   },
   img: {
