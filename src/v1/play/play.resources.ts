@@ -27,12 +27,13 @@ export async function getEventVolume({ eventId }: { eventId: string }) {
   ]);
 }
 
-export async function getEventChallengesVolume({ eventId }: { eventId: string }) {
+export async function getEventChallengesVolume({ eventId, challengeIds }: { eventId: string, challengeIds: mongoose.Types.ObjectId[] }) {
   return Play.aggregate(
     [
       {
         $match: {
           event: new mongoose.Types.ObjectId(eventId),
+          challenge: { $in: challengeIds },
         },
       },
       {
@@ -110,4 +111,13 @@ export async function findPlaysWithDetails(
       path: 'challenge',
       select: 'logic title', // Specify the fields you want to fetch
     });
+}
+
+export async function deletePlays(
+  filter: { playBy?: string, event?: string, challenge?: string | AnyObject },
+  projectionOptions?: IAnyObject,
+) {
+  const projection: IAnyObject = projectionOptions ?? {};
+
+  return Play.deleteMany(filter, projection);
 }

@@ -29,9 +29,9 @@ export async function findUsers(payload: IDBQuery, projectionOptions?: IAnyObjec
   return User.find(payload, projection).limit(30);
 }
 
-export async function updateUsers(payload: { email: string }) {
-  const { email } = payload;
-  return User.find({ email: { $regex: new RegExp(email, 'i') } }, { _id: 1, email: 1 }).limit(30);
+export async function updateUser(filter: IDBQuery, update: AnyObject, projectionOptions?: IAnyObject) {
+  const projection: IAnyObject = projectionOptions ?? {};
+  return User.updateOne(filter, update, projection);
 }
 
 export async function updateUsersBulkwrite(update: BulkWriteOperation[]) {
@@ -243,15 +243,15 @@ export async function IsBlacklistedInUserEvent(userId: string, eventId: string) 
   return isBlacklisted;
 }
 
-export async function findUserClaims(userId: string) {
+export async function findUserClaims(userId: string, challengesIds?: string[], claimStatus?: boolean) {
   mongoose.set('debug', true);
-  return User.aggregate([
+
+  const aggregateQuery: any = [
     {
       $match: {
         _id: new mongoose.Types.ObjectId(userId),
       },
     },
-
     // filtering claims to only true
     {
       $project: {
@@ -261,29 +261,31 @@ export async function findUserClaims(userId: string) {
           $filter: {
             input: '$claims',
             as: 'claims',
-            cond: { $eq: ['$$claims.status', true] },
+            cond: { $eq: ['$$claims.status', claimStatus ?? true] },
           },
         },
       },
     },
-    {
-      $project: {
-        balance: 1,
-        claims: {
-          $sortArray: { input: '$claims', sortBy: { createdAt: -1 } },
-        },
-      },
-    },
+  ];
 
-    // limiting data
-    {
-      $project: {
-        balance: 1,
-        claims: {
-          $slice: ['$claims', 50],
-        },
+  const limitAndSort = [{
+    $project: {
+      balance: 1,
+      claims: {
+        $sortArray: { input: '$claims', sortBy: { createdAt: -1 } },
       },
     },
+  },
+
+  // limiting data
+  {
+    $project: {
+      balance: 1,
+      claims: {
+        $slice: ['$claims', 50],
+      },
+    },
+  },
     // {
     //   $lookup: {
     //     from: 'challenges',
@@ -301,5 +303,27 @@ export async function findUserClaims(userId: string) {
     //     ],
     //   }
     // }
-  ]);
+  ];
+
+  if (Array.isArray(challengesIds) && challengesIds[0]) {
+    aggregateQuery.push(
+      {
+        $project: {
+          _id: 1,
+          balance: 1,
+          claims: {
+            $filter: {
+              input: '$claims',
+              as: 'claims',
+              cond: { $in: ['$$claims.challenge', challengesIds] },
+            },
+          },
+        },
+      },
+    );
+  }
+
+  aggregateQuery.concat(limitAndSort);
+
+  return User.aggregate(aggregateQuery);
 }
