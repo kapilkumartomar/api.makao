@@ -5,7 +5,7 @@ import {
   IAnyObject, IDBQuery, aggregateBasicQueryGenerator,
   basicQueryGenerator,
 } from '@util/helper';
-import Event, { IEvent } from './event.model';
+import Event, { IEvent, IEventStatus } from './event.model';
 import Play from '../play/play.model';
 
 export async function createEvent(payload: IEvent) {
@@ -64,6 +64,7 @@ export async function updateEvent(
   update: {
     videoLink?: string, volume?: number, '$inc'?: IAnyObject, decisionTakenTime?: any
     invitations?: string[]
+    status?: IEventStatus
   },
   optionsPayload?: IAnyObject,
 ) {
