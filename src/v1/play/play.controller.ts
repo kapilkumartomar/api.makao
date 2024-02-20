@@ -6,6 +6,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 
 import { makaoPlatformFeePercentage, wentWrong } from '@util/helper';
+import { updateUsersBulkwrite } from '@user/user.resources';
 import {
   createPlay, getEventVolume, findPlay, findOneAndUpdatePlay, getEventChallengesVolume,
 } from './play.resources';
@@ -27,11 +28,17 @@ export async function handleCreatePlay(req: Request, res: Response) {
     // checking for player before creating a play
     const alreadyPlayerPromise = findPlay({ playBy: body.userInfo?._id, event: body?.event });
 
+    // need to find Challenges with Status "DEFAULT" to get volume
+    const challengesWithStatusDefaultPromise = findChallenges(
+      { playStatus: 'DEFAULT', event: body?.event },
+      { _id: 1 },
+    );
+
     const [
       // eventInfo,
-      alreadyPlayedForChallenge, alreadyPlayer] = await Promise.all([
+      alreadyPlayedForChallenge, alreadyPlayer, challengesWithStatusDefault] = await Promise.all([
       // eventInfoPromise,
-      alreadyPlayedForChallengePromise, alreadyPlayerPromise]);
+      alreadyPlayedForChallengePromise, alreadyPlayerPromise, challengesWithStatusDefaultPromise]);
 
     // Organiser is not allowed to play for event he created
 
@@ -45,17 +52,17 @@ export async function handleCreatePlay(req: Request, res: Response) {
     let play: any;
     if (alreadyPlayedForChallenge) {
       play = await findOneAndUpdatePlay(alreadyPlayedForChallenge?._id as any, { amount: alreadyPlayedForChallenge?.amount + body?.amount });
-      console.log('alrdf play', play);
     } else {
       play = await createPlay({ ...body, playBy: body.userInfo?._id });
-      console.log('new play', play);
     }
+
+    const challengeIds = challengesWithStatusDefault.map((val) => val?._id);
 
     // Play logic
 
     // getting respective volumes
     const eventVolumePromise = getEventVolume({ eventId: play?.event as any });
-    const challengesVolumePromise = getEventChallengesVolume({ eventId: play?.event as any });
+    const challengesVolumePromise = getEventChallengesVolume({ eventId: play?.event as any, challengeIds });
     const [eventVolumeRes, challengesVolumeRes] = await Promise.all([eventVolumePromise, challengesVolumePromise]);
 
     const eventVolume = Array.isArray(eventVolumeRes) ? eventVolumeRes[0]?.eventVolume : 0;
@@ -77,6 +84,16 @@ export async function handleCreatePlay(req: Request, res: Response) {
       },
     }));
 
+    // updating the Users's balance, The amount he betted
+    const balanceUpdate: any = [{
+      updateOne: {
+        filter: { _id: body?.userInfo?._id },
+        update: {
+          $inc: { balance: -Number(body?.amount) },
+        },
+      },
+    }];
+
     const updateEventPayload: any = { volume: eventVolume };
 
     // increasing the count only if not a player already
@@ -84,9 +101,10 @@ export async function handleCreatePlay(req: Request, res: Response) {
 
     // updating the respective
     const updatedEventPromise = updateEvent(play?.event as any, updateEventPayload, { select: '_id volume playersCount' });
-    const updatedChallengesPromise = await updateChallengeBulkwrite(challengesUpdate);
+    const updatedChallengesPromise = updateChallengeBulkwrite(challengesUpdate);
+    const updatedUserBalance = updateUsersBulkwrite(balanceUpdate);
 
-    const [, updatedEvent] = await Promise.all([updatedChallengesPromise, updatedEventPromise]);
+    const [, updatedEvent] = await Promise.all([updatedChallengesPromise, updatedEventPromise, updatedUserBalance]);
 
     const updatedChallenges = await findChallenges(
       { _id: { $in: challengesVolumeRes.filter((val) => val?.challengeVolume).map((val) => val?.challenge) } },

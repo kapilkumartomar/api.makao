@@ -8,7 +8,7 @@ import {
   handleCreateEvent,
   handleEventDecisionRefund,
   handleEventDecisionWin,
-  handleEventUserRefund,
+  handleUserRefundAndKick,
   handleGetComments,
   handleGetEvent,
   handleGetEvents,
@@ -17,6 +17,7 @@ import {
   handleGetUserEvents,
   handleSearchEventsUsersCategories,
   handleUpdateEvent,
+  handlePlayerClaims,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
 
@@ -65,8 +66,10 @@ routes.get('/:_id/comment', auth, handleGetComments);
 
 routes.get('/:_id/players', auth, handleGetPlayers);
 
+routes.post('/:_id/claims', auth, handlePlayerClaims);
+
 routes.post('/:_id/decision/win', auth, handleEventDecisionWin);
 routes.post('/:_id/decision/refund', auth, handleEventDecisionRefund);
-routes.post('/:_id/user/:userId/refund', auth, handleEventUserRefund);
+routes.post('/:_id/user/:userId/refund', auth, handleUserRefundAndKick);
 
 module.exports = routes;

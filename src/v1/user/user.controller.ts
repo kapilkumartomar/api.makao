@@ -186,23 +186,28 @@ export async function handleUpdateUserProfile(req: Request, res: Response) {
   }
 }
 
-export async function handleUserAddFriend(req: Request, res: Response) {
+export async function handleUserAddRemoveFriend(req: Request, res: Response) {
   try {
     const { body } = req;
+    const { friendId, type, userInfo } = body ?? {};
 
-    if (body?.userInfo?._id === body?.newFriendId) {
+    if (userInfo?._id === friendId) {
       return res.status(500).json({
         message: 'You can add yourself as friend!',
       });
     }
 
     const query: any = await findOneAndUpdateUser(
-      body?.userInfo?._id,
-      { $addToSet: { friends: body?.newFriendId } },
+      userInfo?._id,
+      type === 'UNFRIEND'
+        ? { $pull: { friends: friendId } }
+        : { $addToSet: { friends: friendId } },
     );
 
+    // { $pull: { friends: body?.friendToRemoveId } },
+
     return res.status(200).json({
-      message: 'User add to friend list successfully',
+      message: `User ${type === 'UNFRIEND' ? 'removed' : 'ADDED'} to friend list successfully`,
       data: query,
     });
   } catch (ex: any) {

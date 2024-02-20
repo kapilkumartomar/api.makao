@@ -20,7 +20,7 @@ export function basicQueryGenerator(query?: IDBQuery) {
     ? (Number(page) - 1) * Number(limit)
     : 0;
 
-  const sortOrder = { [sortAt as string]: sortType === 'dsc' ? -1 : 1 };
+  const sortOrder = { [sortAt as string]: sortType === 'dsc' ? -1 : 1, createdAt: -1 };
 
   return {
     sort: sortOrder,

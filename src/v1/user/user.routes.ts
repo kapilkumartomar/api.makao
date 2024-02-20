@@ -5,11 +5,11 @@ import { auth } from '@config/auth';
 import multer from 'multer';
 import {
   handleUserSignIn, handleUserSignUp, handleUserUpdate, handleUsersSearch,
-  handleGetUser, handleUpdateUserProfile, handleUserAddFriend, handleGetUserFriends,
+  handleGetUser, handleUpdateUserProfile, handleGetUserFriends,
   handleGetLeaderboard,
   handleGetOtherUser,
   handleGetWallet,
-  handlePostBlacklist, handlePatchUnBlacklist, handleGetIsBlacklisted,
+  handlePostBlacklist, handlePatchUnBlacklist, handleGetIsBlacklisted, handleUserAddRemoveFriend,
 } from './user.controller';
 import {
   validateEmail,
@@ -31,7 +31,7 @@ routes.get('/isblacklisted/:eventId', auth, handleGetIsBlacklisted);
 
 routes.post('/sign-in', validate([validateEmail, validatePassword]), handleUserSignIn);
 routes.get('/search', handleUsersSearch);
-routes.post('/friend', auth, handleUserAddFriend);
+routes.post('/friend', auth, handleUserAddRemoveFriend);
 routes.get('/friends', auth, handleGetUserFriends);
 routes.get('/wallet', auth, handleGetWallet);
 

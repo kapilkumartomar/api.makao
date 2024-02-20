@@ -3,12 +3,14 @@
 
 import { Request, Response } from 'express';
 
-import { wentWrong } from '@util/helper';
+import { makaoPlatformFeePercentage, wentWrong } from '@util/helper';
 import mongoose from 'mongoose';
 import { updateUsersBulkwrite } from '@user/user.resources';
-import { createChallenge, updateChallenge, updateChallenges } from './challenge.resources';
+import {
+  createChallenge, findChallenges, updateChallenge, updateChallengeBulkwrite, updateChallenges,
+} from './challenge.resources';
 import { createNotifications } from '../notification/notification.resources';
-import { findPlays } from '../play/play.resources';
+import { findPlays, getEventChallengesVolume } from '../play/play.resources';
 import { updateEvent } from '../event/event.resources';
 
 export async function handleCreateChallenge(req: Request, res: Response) {
@@ -76,9 +78,40 @@ export async function handleChallengeRefund(req: Request, res: Response) {
       findPlaysPromise,
     ]);
 
-    const totalRefundedAmount = plays.reduce((accumulator, play) => accumulator + Number(play?.amount ?? 0), 0);
+    // need to find Challenges with Status "DEFAULT" to get volume
+    const challengesWithStatusDefault = await findChallenges(
+      { playStatus: 'DEFAULT', event: challenge?.event },
+      { _id: 1 },
+    );
+    const challengeIds = challengesWithStatusDefault.map((val) => val?._id);
 
-    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), $inc: { volume: -totalRefundedAmount } }, { select: '_id decisionTakenTime volume fees' }) as any;
+    const totalRefundedAmount: number = plays.reduce((accumulator, play) => accumulator + Number(play?.amount ?? 0), 0);
+
+    const updateEventPromise = updateEvent(challenge?.event as any, { decisionTakenTime: new Date(), $inc: { volume: -totalRefundedAmount } }, { select: '_id decisionTakenTime volume fees' }) as any;
+    const challengesVolumePromise = getEventChallengesVolume({ eventId: challenge?.event as any, challengeIds });
+
+    const [event, challengesVolume] = await Promise.all([
+      updateEventPromise,
+      challengesVolumePromise,
+    ]);
+
+    const eventVolume = event?.volume ?? 0;
+
+    // caclulated the fee
+    const organiserFee = eventVolume * (event?.fees ? event?.fees / 100 : 0);
+    const fees = (eventVolume * makaoPlatformFeePercentage) + organiserFee;
+
+    // preparing bulk write of updateing odd, it's effected due to we refunded for a challege
+    const challengesUpdate = challengesVolume.filter((val) => val?.challengeVolume).map((update) => ({
+      updateOne: {
+        filter: { _id: update.challenge },
+        update: {
+          $set: {
+            odd: Number(Number((eventVolume - fees) / update.challengeVolume).toFixed(2)),
+          },
+        },
+      },
+    }));
 
     // updating the Users's balance
     const balanceUpdate: any = plays.map((val) => ({
@@ -90,7 +123,10 @@ export async function handleChallengeRefund(req: Request, res: Response) {
       },
     }));
 
-    await updateUsersBulkwrite(balanceUpdate);
+    await Promise.all([
+      updateUsersBulkwrite(balanceUpdate),
+      updateChallengeBulkwrite(challengesUpdate), // updating challeges updated odds etc
+    ]);
 
     // If everything is successful, commit the transaction
     await session.commitTransaction();
