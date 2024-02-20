@@ -396,7 +396,7 @@ export async function handleEventDecisionWin(req: Request, res: Response) {
       findPlaysPromise,
       challengeLossPromise]);
 
-    const event = await updateEvent(_id as any, { decisionTakenTime: new Date() }, { select: '_id decisionTakenTime volume fees' }) as any;
+    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), status: 'COMPLETE' }, { select: '_id decisionTakenTime volume fees status' }) as any;
     const challengesVolume = await getChallengesVolume({ challengeIds: winnerChallenges });
     const challengesTotalVolume = Array.isArray(challengesVolume) && challengesVolume[0]?.challengesTotalVolume ? challengesVolume[0]?.challengesTotalVolume : 1;
 
@@ -502,7 +502,7 @@ export async function handleEventDecisionRefund(req: Request, res: Response) {
       findPlaysPromise,
     ]);
 
-    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), volume: 0 }, { select: '_id decisionTakenTime volume fees' }) as any;
+    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), volume: 0, status: 'REFUND' }, { select: '_id decisionTakenTime volume fees status' }) as any;
 
     // updating the Users's balance
     const balanceUpdate: any = plays.map((val) => ({

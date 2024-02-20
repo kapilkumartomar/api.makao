@@ -8,6 +8,7 @@ interface IChallenge {
   title: string;
   logic: string;
 }
+export type IEventStatus = 'COMPLETE' | 'REFUND' | 'DEFAULT'
 
 export interface IEvent extends Document {
   name: string;
@@ -32,6 +33,7 @@ export interface IEvent extends Document {
   comments: [IComment]
   invitations: Array<Schema.Types.ObjectId>;
   platformFees?: number
+  status?: IEventStatus
 }
 
 const eventSchema = new Schema<IEvent>({
@@ -99,6 +101,11 @@ const eventSchema = new Schema<IEvent>({
   createdBy: {
     type: Schema.Types.ObjectId,
     required: true,
+  },
+  status: {
+    type: String,
+    enum: ['COMPLETE', 'REFUND', 'DEFAULT'],
+    default: 'DEFAULT',
   },
   comments: [commentSchema], // Embedded comments array
   invitations: [{ type: Schema.Types.ObjectId, ref: 'User' }], // array of user that are invited
