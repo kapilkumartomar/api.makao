@@ -58,6 +58,9 @@ export async function findNotifications(userId: string, basicQuery: any) {
         notifications: { $push: '$$ROOT' },
       },
     },
+    {
+      $sort: { _id: -1 },
+    },
   ]);
   // .find(query)
   // .populate('metaData.eventId')
