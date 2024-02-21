@@ -18,6 +18,7 @@ import {
   handleSearchEventsUsersCategories,
   handleUpdateEvent,
   handlePlayerClaims,
+  handleGetFriendsComments,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
 
@@ -63,6 +64,7 @@ routes.patch('/:_id', auth, validate(validateUpdateEvent), handleUpdateEvent);
 routes.post('/:_id/comment', auth, validate(validateCreateComment), handleCreateComment);
 
 routes.get('/:_id/comment', auth, handleGetComments);
+routes.get('/:_id/comment/friends', auth, handleGetFriendsComments);
 
 routes.get('/:_id/players', auth, handleGetPlayers);
 
