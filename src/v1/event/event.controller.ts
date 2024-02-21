@@ -15,7 +15,7 @@ import {
 } from '@user/user.resources';
 import mongoose, { AnyObject, Types } from 'mongoose';
 import {
-  createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
+  createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsEventComments, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
 import {
   createChallenges, findChallenges, updateChallengeBulkwrite, updateChallenges,
@@ -131,6 +131,35 @@ export async function handleGetComments(req: Request, res: Response) {
     return res.status(200).json({
       message: 'Comment fetched successfully',
       data: eventComments,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetFriendsComments(req: Request, res: Response) {
+  const { query, params, body } = req;
+  const eventId = params._id;
+
+  try {
+    const userFriends = await findUserFriendsDetails(body?.userInfo?._id);
+    console.log('user fie', userFriends);
+    const friendIds = userFriends?.friends?.map((val) => val?._id);
+    console.log('user fied', friendIds);
+
+    const friendsEventComments = await getFriendsEventComments(eventId as any, query, friendIds as any[]);
+
+    if (!friendsEventComments) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Friends Comment fetched successfully',
+      data: friendsEventComments,
       page: query?.page ? Number(query?.page) : 1,
       pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
     });

@@ -59,6 +59,49 @@ export async function getEventComments(eventId: string, query: any) {
   ]);
 }
 
+export async function getFriendsEventComments(eventId: string, query: any, friendsIds: ObjectId[]) {
+  const page = parseInt(query?.page) || 1; // Default to page 1
+  const pageSize = parseInt(query?.pageSize) || 20; // Default to 20 comments per page
+  return Event.aggregate([
+    { $match: { _id: new mongoose.Types.ObjectId(eventId) } },
+    // "unwind" or deconstruct an array field, creating a separate document for each element in the array
+    { $unwind: '$comments' },
+    { $sort: { 'comment.createdAt': -1 } },
+    { $skip: (page - 1) * pageSize },
+    { $limit: pageSize },
+    // getting friends only
+    {
+      $match: { createdBy: { $in: friendsIds } },
+    },
+    // getting related users
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'comments.createdBy',
+        foreignField: '_id',
+        as: 'user',
+        pipeline: [
+          {
+            $project: {
+              _id: 0,
+              username: 1,
+              img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
+            },
+          },
+        ],
+      },
+    },
+    // selecting specific
+    {
+      $project: {
+        _id: 0,
+        comment: '$comments',
+        user: { $arrayElemAt: ['$user', 0] },
+      },
+    },
+  ]);
+}
+
 export async function updateEvent(
   eventId: Schema.Types.ObjectId,
   update: {
