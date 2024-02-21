@@ -42,9 +42,9 @@ export function aggregateBasicQueryGenerator(query: IDBQuery) {
   const sortOrder = { [sortAt as string]: sortType === 'dsc' ? -1 : 1 };
 
   return [
-    { $limit: limit },
-    { $skip: offset },
     { $sort: sortOrder },
+    { $skip: offset },
+    { $limit: limit },
   ];
 }
 
