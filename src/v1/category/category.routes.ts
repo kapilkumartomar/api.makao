@@ -1,12 +1,12 @@
 import express from 'express';
+import { web3Auth } from '@config/web3Auth';
 
-import { auth } from '@config/auth';
 import {
   handleGetCategories,
 } from './category.controller';
 
 const routes = express.Router();
 
-routes.get('/', auth, handleGetCategories);
+routes.get('/', web3Auth, handleGetCategories);
 
 module.exports = routes;

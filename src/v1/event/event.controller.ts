@@ -420,7 +420,7 @@ export async function handleEventDecisionWin(req: Request, res: Response) {
       _id: 1, playBy: 1, amount: 1, event: 1, challenge: 1,
     });
 
-    const [challenge, plays] = await Promise.all([
+    const [challenges, plays] = await Promise.all([
       challengePromise,
       findPlaysPromise,
       challengeLossPromise]);
@@ -495,7 +495,7 @@ export async function handleEventDecisionWin(req: Request, res: Response) {
 
     return res.status(200).json({
       message: 'Event decision taken successfully',
-      data: { challenge, event },
+      data: { challenges, event },
     });
   } catch (ex: any) {
     // If there's an error, rollback the transaction
