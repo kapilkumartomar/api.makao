@@ -1,6 +1,6 @@
 import express from 'express';
+import { web3Auth } from '@config/web3Auth';
 
-import { auth } from '@config/auth';
 import {
   handleChallengeRefund,
   handleCreateChallenge,
@@ -11,19 +11,19 @@ const routes = express.Router();
 
 routes.post(
   '/',
-  auth,
+  web3Auth,
   handleCreateChallenge,
 );
 
 routes.patch(
   '/:_id',
-  auth,
+  web3Auth,
   handleUpdateChallenge,
 );
 
 routes.post(
   '/:_id/refund',
-  auth,
+  web3Auth,
   handleChallengeRefund,
 );
 

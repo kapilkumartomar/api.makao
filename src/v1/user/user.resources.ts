@@ -8,7 +8,7 @@ import Event from '../event/event.model';
 export type ILeaderBoardType = 'FRIEND' | 'PLAYER' | 'ORGANIZER';
 
 export async function findUser(
-  payload: { email?: string, privacy?: boolean, _id?: string, claims?: AnyObject },
+  payload: { email?: string, privacy?: boolean, _id?: string, claims?: AnyObject, ['web3Auth.verifierId']?: string },
   projection?: AnyObject,
   options?: AnyObject,
 ) {

@@ -6,6 +6,10 @@ import mongoose, { Schema } from 'mongoose';
 import claimsSchema from './claims.model';
 
 const userSchema = new mongoose.Schema({
+  web3Auth: {
+    verifier: String,
+    verifierId: String,
+  },
   username: {
     type: String,
     required: true,
@@ -13,12 +17,12 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: true,
+    // required: true,
     unique: true,
   },
   password: {
     type: String,
-    required: true,
+    // required: true,
   },
   balance: {
     type: Number,
