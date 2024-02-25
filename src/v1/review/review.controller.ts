@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import { Request, Response } from 'express';
 
 import { wentWrong } from '@util/helper';
@@ -64,7 +65,8 @@ export async function handlePostReview(req: Request, res: Response) {
             $cond: {
               if: { $eq: [givenReview, 0] },
               then: { $max: [minTrustNote, { $subtract: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }] },
-              else: { $min: [maxTrustNote, { $add: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }] },
+              // removing this increase in player trust-note logic as nothing to do when player gives a true decision of an event.
+              // else: { $min: [maxTrustNote, { $add: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }] },
             },
           },
         },
