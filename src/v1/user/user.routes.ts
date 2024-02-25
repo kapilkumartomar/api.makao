@@ -12,6 +12,7 @@ import {
   handleGetOtherUser,
   handleGetWallet,
   handlePostBlacklist, handlePatchUnBlacklist, handleGetIsBlacklisted,
+  handleGetOrganiserTrustNote,
 } from './user.controller';
 import {
   validateEmail,
@@ -21,7 +22,6 @@ import {
 
 const upload = multer();
 const routes = express.Router();
-
 routes.get('/', auth, handleGetUser);
 routes.post('/', validate([validateEmail, validatePassword]), handleUserSignUp);
 routes.patch('/', auth, handleUserUpdate);
@@ -36,6 +36,7 @@ routes.get('/friends', auth, handleGetUserFriends);
 routes.get('/leaderboard', auth, handleGetLeaderboard);
 routes.get('/wallet', auth, handleGetWallet);
 
+routes.get('/organisertrustnote', auth, handleGetOrganiserTrustNote);
 routes.get('/:_id', auth, handleGetOtherUser);
 
 routes.get('/leaderboard/organisers', auth, handleGetOrganisersLeaderboard);
