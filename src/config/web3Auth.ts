@@ -7,7 +7,7 @@ export async function web3Auth(req: Request, res: Response, next: NextFunction) 
     const { headers } = req;
     if (
       headers.authorization
-            && headers.authorization.split(' ')[0] === 'Bearer'
+      && headers.authorization.split(' ')[0] === 'Bearer'
     ) {
       // passed from the frontend in the Authorization header
       const idToken: any = headers?.authorization?.split(' ')[1];
@@ -15,15 +15,29 @@ export async function web3Auth(req: Request, res: Response, next: NextFunction) 
       // passed from the frontend in the request body
       const appPubKey: any = headers?.apppubkey ?? headers?.appPubKey;
 
+      // passed from the frontend in the request body
+      const publicAddress: any = headers?.address;
+
       // Get the JWK set used to sign the JWT issued by Web3Auth
       const jwks = jose.createRemoteJWKSet(new URL('https://api-auth.web3auth.io/jwks'));
 
       // Verify the JWT using Web3Auth's JWKS
       const jwtDecoded: any = await jose.jwtVerify(idToken, jwks, { algorithms: ['ES256'] });
 
-      if ((jwtDecoded.payload as any).wallets[0].public_key.toLowerCase() !== appPubKey?.toLowerCase()) {
-        return res.status(401).json({ message: 'Verification Failed, public key does not match!' });
+      if (!(appPubKey || publicAddress)) {
+        return res.status(401).json({ message: 'Verification Failed, public key or address does not provided!' });
       }
+
+      if (appPubKey) {
+        if ((jwtDecoded.payload as any)?.wallets[0]?.public_key?.toLowerCase() !== appPubKey?.toLowerCase()) {
+          return res.status(401).json({ message: 'Verification Failed, public key does not match!' });
+        }
+      } else if (publicAddress) {
+        if ((jwtDecoded.payload as any)?.wallets[0]?.address?.toLowerCase() !== publicAddress?.toLowerCase()) {
+          return res.status(401).json({ message: 'Verification Failed, address does not match!' });
+        }
+      }
+
       // Not a valid user
       if (!jwtDecoded?.payload?.verifierId) return res.status(401).json({ message: 'Verification Failed, Verifier Id does not found!' });
 

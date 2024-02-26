@@ -400,8 +400,13 @@ export async function handleCryptoSignUp(req: Request, res: Response) {
     // passed from the frontend in the request body
     const appPubKey: any = headers?.apppubkey ?? headers?.appPubKey;
 
+    // passed from the frontend in the request body
+    const publicAddress: any = headers?.address;
+
+    // https://api-auth.web3auth.io/jwks
+
     // Get the JWK set used to sign the JWT issued by Web3Auth
-    const jwks = jose.createRemoteJWKSet(new URL('https://api-auth.web3auth.io/jwks'));
+    const jwks = jose.createRemoteJWKSet(new URL('https://api.openlogin.com/jwks'));
 
     // Verify the JWT using Web3Auth's JWKS
     const jwtDecoded: any = await jose.jwtVerify(idToken, jwks, { algorithms: ['ES256'] });
@@ -437,8 +442,13 @@ export async function handleCryptoSignUp(req: Request, res: Response) {
 
     if (!jwtDecoded?.payload?.verifierId) return res.status(400).json({ message: 'Verification Failed, Verifier Id does not found!' });
 
+    if (!(appPubKey || publicAddress)) {
+      return res.status(401).json({ message: 'Verification Failed, public key or address does not provided!' });
+    }
+
     // Checking `appPubKey` against the decoded JWT wallet's public_key
-    if ((jwtDecoded.payload as any).wallets[0].public_key.toLowerCase() === appPubKey?.toLowerCase()) {
+    if ((appPubKey && (jwtDecoded.payload as any).wallets[0]?.public_key?.toLowerCase() === appPubKey?.toLowerCase())
+      || (publicAddress && (jwtDecoded.payload as any).wallets[0]?.address?.toLowerCase() === publicAddress?.toLowerCase())) {
       // Verified user
       const {
         verifierId, verifier, profileImage, name, email,
