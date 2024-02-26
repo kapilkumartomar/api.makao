@@ -12,7 +12,7 @@ import {
   handleGetOtherUser,
   handleGetWallet,
   handlePostBlacklist, handlePatchUnBlacklist, handleGetIsBlacklisted,
-  handleGetOrganiserTrustNote, handleMergeUserTrustNote,
+  handleGetOrganiserTrustNote,
 } from './user.controller';
 import {
   validateEmail,
@@ -37,7 +37,6 @@ routes.get('/leaderboard', auth, handleGetLeaderboard);
 routes.get('/wallet', auth, handleGetWallet);
 
 routes.get('/organisertrustnote', auth, handleGetOrganiserTrustNote);
-routes.post('/mergeusertrustnote', auth, handleMergeUserTrustNote);
 routes.get('/:_id', auth, handleGetOtherUser);
 
 routes.get('/leaderboard/organisers', auth, handleGetOrganisersLeaderboard);

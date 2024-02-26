@@ -53,20 +53,6 @@ export async function findOrganiserTrustNote(_id : string) {
   ]);
 }
 
-export async function mergeUserTrustNote(userId: string, organiserTrustNote: number, userTrustNote: number) {
-  const trueUserTrustNote = (organiserTrustNote + userTrustNote) / 2;
-  mongoose.set('debug', true);
-  return User.findOneAndUpdate(
-    { _id: userId },
-    {
-      $set: {
-        userTrustNote: trueUserTrustNote,
-      },
-    },
-    { new: true },
-  );
-}
-
 export async function createUser(payload: { email: string, password: string, username?: string }) {
   return User.create(payload);
 }

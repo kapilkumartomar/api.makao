@@ -16,7 +16,7 @@ import {
   createUser, findFriendsLeaderboard, findOrganisersLeaderboard, findOneAndUpdateUser,
   findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard, findUserClaims,
   addBlacklistUserEvents, removeBlacklistUserEvents, IsBlacklistedInUserEvent,
-  findOrganiserTrustNote, mergeUserTrustNote,
+  findOrganiserTrustNote,
 } from './user.resources';
 import { findPlaysWithDetails } from '../play/play.resources';
 
@@ -451,26 +451,6 @@ export async function handleGetOrganiserTrustNote(req: Request, res: Response) {
     return res.status(200).json({
       message: "Organiser's Trust Note fetched successfully",
       data: { organiserTrustNote },
-    });
-  } catch (err: any) {
-    return res.status(500).json({
-      message: err?.message ?? wentWrong,
-    });
-  }
-}
-
-export async function handleMergeUserTrustNote(req: Request, res: Response) {
-  try {
-    console.log('api mergeusertrustnote', req.body)
-    const { body: { organiserTrustNote, userTrustNote, userInfo: { _id: userId } } } = req;
-
-    if (Number.isNaN(+organiserTrustNote) || Number.isNaN(+userTrustNote)) throw new Error('Trust note must be a valid number.');
-
-    const updatedUserTrustNote: any = await mergeUserTrustNote(userId, +organiserTrustNote, +userTrustNote);
-
-    return res.status(200).json({
-      message: "Organiser's Trust Note merged successfully",
-      data: { updatedUserTrustNote: updatedUserTrustNote.userTrustNote },
     });
   } catch (err: any) {
     return res.status(500).json({
