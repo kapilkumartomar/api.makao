@@ -413,7 +413,7 @@ export async function handleEventDecisionWin(req: Request, res: Response) {
 
     const challengePromise: any = updateChallenges({ _id: { $in: winnerChallenges } }, { playStatus: 'WIN' });
     // change challenge status to loss
-    const challengeLossPromise: any = updateChallenges({ _id: { $nin: winnerChallenges, event: _id } }, { playStatus: 'LOSS' });
+    const challengeLossPromise: any = updateChallenges({ _id: { $nin: winnerChallenges }, event: _id }, { playStatus: 'LOSS' });
 
     // Find plays
     const findPlaysPromise = findPlays({ challenge: { $in: winnerChallenges } }, {
