@@ -87,7 +87,7 @@ export async function handleChallengeRefund(req: Request, res: Response) {
 
     const totalRefundedAmount: number = plays.reduce((accumulator, play) => accumulator + Number(play?.amount ?? 0), 0);
 
-    const updateEventPromise = updateEvent(challenge?.event as any, { decisionTakenTime: new Date(), $inc: { volume: -totalRefundedAmount } }, { select: '_id decisionTakenTime volume fees' }) as any;
+    const updateEventPromise = updateEvent(challenge?.event as any, { $inc: { volume: -totalRefundedAmount } }, { select: '_id decisionTakenTime volume fees' }) as any;
     const challengesVolumePromise = getEventChallengesVolume({ eventId: challenge?.event as any, challengeIds });
 
     const [event, challengesVolume] = await Promise.all([
