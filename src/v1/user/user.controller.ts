@@ -104,7 +104,13 @@ export async function handleUserSignUp(req: Request, res: Response) {
 export async function handleUsersSearch(req: Request, res: Response) {
   try {
     const { email } = req.query;
-    const query: any = await findUsers({ email: { $regex: new RegExp(email as string, 'i') }, privacy: true }, {
+    const query: any = await findUsers({
+      $or: [
+        { email: { $regex: new RegExp(email as string, 'i') } },
+        { username: { $regex: new RegExp(email as string, 'i') } },
+      ],
+      privacy: true,
+    }, {
       id: 1, username: 1, email: 1, img: 1,
     });
 
