@@ -12,24 +12,9 @@ console.log('Running crons!');
 
   console.log('mongoose connection', mongoose.connection.readyState);
 
-  // Get the current date and time
-  const currentDate = new Date();
-  // Get the current day of the week as a number (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-  const currentDayNumber = currentDate.getDay();
-  // Define an array of day names
-  const dayNames = [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-  ];
-  // Get the current day name
-  const currentDayName = dayNames[currentDayNumber];
-  // Get the current hour (0-23)
-  const currentHour = currentDate.getHours();
+  console.log('cron job executed!');
+
+  // Call or create functions here
 
   // throw Error("error in code");
   // signal to parent that the job is done
