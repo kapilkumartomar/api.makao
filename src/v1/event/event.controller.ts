@@ -262,7 +262,6 @@ export async function handleGetUserEvents(req: Request, res: Response) {
   const { type, otherUserId, ...basicQuery } = query ?? {};
   const currentDateISO = new Date();
   const rawQuery: IDBQuery = {};
-  rawQuery.createdBy = new mongoose.Types.ObjectId(body.userInfo._id);
 
   if (type === 'CURRENT') {
     rawQuery.startTime = { $lte: currentDateISO };
@@ -277,7 +276,8 @@ export async function handleGetUserEvents(req: Request, res: Response) {
   }
 
   try {
-    const events = await getEventsAndPlays({ $match: rawQuery }, basicQuery as IDBQuery);
+    const events = await getEventsAndPlays({ $match: rawQuery }, basicQuery as IDBQuery, otherUserId || body?.userInfo?._id);
+
     return res.status(200).json({
       message: 'User Events fetched successfully',
       data: events,
