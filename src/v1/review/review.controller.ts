@@ -50,8 +50,20 @@ export async function handleIsReviewGiven(req: Request, res: Response) {
 export async function handlePostReview(req: Request, res: Response) {
   try {
     const { _id: userId } = req.body.userInfo;
-    const reviews: any = await postReview(req.body);
+    const reviewsPromise: any = postReview(req.body);
+    const challengesPromise: any = findChallenges({ event: req.body.eventId });
+
+    const [reviews, challenges] = await Promise.all([reviewsPromise, challengesPromise]);
+
     const givenReview = reviews[0].review;
+    let unclaimedAmount: any = {};
+
+    if (givenReview) {
+      // Checking for the claims
+      const challengeIds = challenges?.map((val: AnyObject) => val?._id);
+      unclaimedAmount = await findUserClaims(userId, challengeIds, false);
+    }
+
     // user-trust-score logic
     // if (givenReview === 0) {
     //   user.userTrustNote = Math.max(
@@ -85,7 +97,7 @@ export async function handlePostReview(req: Request, res: Response) {
 
     return res.status(200).json({
       message: 'Reviews Posted successfully',
-      data: reviews,
+      data: { reviews, unclaimedAmount },
     });
   } catch (err: any) {
     return res.status(500).json({
