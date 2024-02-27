@@ -11,6 +11,7 @@ module.exports = {
     'import/no-import-module-exports': 'off',
     'import/prefer-default-export': 'off',
     'no-underscore-dangle': 'off',
+    'max-len': 'off',
   }, // our own set of customized rules
   settings: {
     'import/resolver': {

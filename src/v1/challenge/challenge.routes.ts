@@ -1,8 +1,8 @@
 import express from 'express';
+import { web3Auth } from '@config/web3Auth';
 
-import { auth } from '@config/auth';
 import {
-  handleChallengeDecision,
+  handleChallengeRefund,
   handleCreateChallenge,
   handleUpdateChallenge,
 } from './challenge.controller';
@@ -11,20 +11,20 @@ const routes = express.Router();
 
 routes.post(
   '/',
-  auth,
+  web3Auth,
   handleCreateChallenge,
 );
 
 routes.patch(
   '/:_id',
-  auth,
+  web3Auth,
   handleUpdateChallenge,
 );
 
 routes.post(
-  '/:_id/decision',
-  auth,
-  handleChallengeDecision,
+  '/:_id/refund',
+  web3Auth,
+  handleChallengeRefund,
 );
 
 module.exports = routes;

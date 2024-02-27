@@ -5,7 +5,7 @@ import {
   IAnyObject, IDBQuery, aggregateBasicQueryGenerator,
   basicQueryGenerator,
 } from '@util/helper';
-import Event, { IEvent } from './event.model';
+import Event, { IEvent, IEventStatus } from './event.model';
 import Play from '../play/play.model';
 
 export async function createEvent(payload: IEvent) {
@@ -59,11 +59,55 @@ export async function getEventComments(eventId: string, query: any) {
   ]);
 }
 
+export async function getFriendsEventComments(eventId: string, query: any, friendsIds: ObjectId[]) {
+  const page = parseInt(query?.page) || 1; // Default to page 1
+  const pageSize = parseInt(query?.pageSize) || 20; // Default to 20 comments per page
+  return Event.aggregate([
+    { $match: { _id: new mongoose.Types.ObjectId(eventId) } },
+    // "unwind" or deconstruct an array field, creating a separate document for each element in the array
+    { $unwind: '$comments' },
+    { $sort: { 'comment.createdAt': -1 } },
+    { $skip: (page - 1) * pageSize },
+    { $limit: pageSize },
+    // getting friends only
+    {
+      $match: { createdBy: { $in: friendsIds } },
+    },
+    // getting related users
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'comments.createdBy',
+        foreignField: '_id',
+        as: 'user',
+        pipeline: [
+          {
+            $project: {
+              _id: 0,
+              username: 1,
+              img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
+            },
+          },
+        ],
+      },
+    },
+    // selecting specific
+    {
+      $project: {
+        _id: 0,
+        comment: '$comments',
+        user: { $arrayElemAt: ['$user', 0] },
+      },
+    },
+  ]);
+}
+
 export async function updateEvent(
   eventId: Schema.Types.ObjectId,
   update: {
     videoLink?: string, volume?: number, '$inc'?: IAnyObject, decisionTakenTime?: any
     invitations?: string[]
+    status?: IEventStatus
   },
   optionsPayload?: IAnyObject,
 ) {
@@ -77,7 +121,7 @@ export async function updateEvent(
   );
 }
 
-export async function getEvents(query: IDBQuery, basicQuery: IDBQuery) {
+export async function getEvents(query: IDBQuery, basicQuery?: IDBQuery) {
   mongoose.set('debug', true);
   return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
 }
@@ -236,6 +280,7 @@ export async function getEvent(_id: string, userId: string) {
               username: 1,
               friends: 1,
               balance: 1,
+              instagramLink: 1,
             },
           },
           // Checing if user's friends are playing
@@ -376,7 +421,7 @@ export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery
 }
 
 export async function findEventPlayers(eventId: string, basicQuery: any) {
-  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+  const aggregateQuery: any = [...aggregateBasicQueryGenerator({ sortAt: 'amount', ...basicQuery })];
 
   return Play.aggregate([
     { $match: { event: new mongoose.Types.ObjectId(eventId) } },

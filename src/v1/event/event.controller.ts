@@ -1,25 +1,32 @@
 /* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
 /* eslint-disable no-console */
+/* eslint-disable no-unsafe-optional-chaining */
 
 import { Request, Response } from 'express';
 import fs from 'fs/promises';
 
 import {
-  IAnyObject, IDBQuery, makaoPlatformFee, wentWrong,
+  IAnyObject, IDBQuery, makaoPlatformFee, makaoPlatformFeePercentage, wentWrong,
 } from '@util/helper';
 import {
-  findUserById, findUserFriends, findUserFriendsDetails, findUsers,
+  findOneAndUpdateUser,
+  findUserById, findUserClaims, findUserFriends, findUserFriendsDetails, findUsers, updateUser, updateUsersBulkwrite,
 } from '@user/user.resources';
 import mongoose, { AnyObject, Types } from 'mongoose';
 import {
-  createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsPlayingEvents, updateEvent,
+  createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsEventComments, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
-import { createChallenges } from '../challenge/challenge.resources';
+import {
+  createChallenges, findChallenges, updateChallengeBulkwrite, updateChallenges,
+} from '../challenge/challenge.resources';
 import { IChallenge } from '../challenge/challenge.model';
 import { IEvent } from './event.model';
 import { createNotifications } from '../notification/notification.resources';
 import { findCategories } from '../category/category.resources';
+import {
+  deletePlays, findPlays, getChallengesVolume, getEventChallengesVolume,
+} from '../play/play.resources';
 
 let dirname = __dirname;
 console.log('dirname', dirname);
@@ -134,6 +141,35 @@ export async function handleGetComments(req: Request, res: Response) {
   }
 }
 
+export async function handleGetFriendsComments(req: Request, res: Response) {
+  const { query, params, body } = req;
+  const eventId = params._id;
+
+  try {
+    const userFriends = await findUserFriendsDetails(body?.userInfo?._id);
+    console.log('user fie', userFriends);
+    const friendIds = userFriends?.friends?.map((val) => val?._id);
+    console.log('user fied', friendIds);
+
+    const friendsEventComments = await getFriendsEventComments(eventId as any, query, friendIds as any[]);
+
+    if (!friendsEventComments) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Friends Comment fetched successfully',
+      data: friendsEventComments,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
 // updte an event
 export async function handleUpdateEvent(req: Request, res: Response) {
   const { body, params } = req;
@@ -176,7 +212,7 @@ export async function handleGetEvents(req: Request, res: Response) {
     type, categoryId, otherUserId, ...basicQuery
   } = query ?? {};
 
-  const rawQuery: IDBQuery = {};
+  const rawQuery: IAnyObject = {};
   if (type === 'ORGANISED') {
     // checking between other user and same user
     console.log('organs', otherUserId, otherUserId || body?.userInfo?._id);
@@ -199,7 +235,11 @@ export async function handleGetEvents(req: Request, res: Response) {
       const currentUser = await findUserById({ _id: userId });
       const currentUserBlacklist: Types.ObjectId[] = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
       const { createdBy } = rawQuery;
-      rawQuery.createdBy = { ...(createdBy || {}), $nin: currentUserBlacklist };
+      if (createdBy) {
+        rawQuery.createdBy = {
+          ...createdBy, $nin: currentUserBlacklist,
+        };
+      } else rawQuery.createdBy = { $nin: currentUserBlacklist };
     }
 
     const events = await getEvents(rawQuery, basicQuery as IDBQuery);
@@ -226,9 +266,13 @@ export async function handleGetUserEvents(req: Request, res: Response) {
   if (type === 'CURRENT') {
     rawQuery.startTime = { $lte: currentDateISO };
     rawQuery.decisionTime = { $gte: currentDateISO };
+    rawQuery.decisionTakenTime = { $exists: false };
   }
   if (type === 'HISTORY') {
-    rawQuery.decisionTime = { $lt: currentDateISO };
+    rawQuery.$or = [
+      { decisionTime: { $lt: currentDateISO } },
+      { decisionTakenTime: { $exists: true } },
+    ];
   }
 
   try {
@@ -327,7 +371,7 @@ export async function handleSearchEventsUsersCategories(req: Request, res: Respo
         { username: { $regex: searchRegex } }],
       privacy: true,
     });
-      // restricting blacklisted user's events by this below written query.
+    // restricting blacklisted user's events by this below written query.
     const currentUser = await findUserById({ _id });
     const currentUserBlacklist: Types.ObjectId[] = currentUser?.blacklistedUsers?.map((user) => user._id) ?? [];
 
@@ -350,6 +394,320 @@ export async function handleSearchEventsUsersCategories(req: Request, res: Respo
       },
       // page: query?.page ? Number(query?.page) : 1,
       // pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleEventDecisionWin(req: Request, res: Response) {
+  // Create a session for the transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { body, params: { _id } } = req;
+    const { winnerChallenges } = body ?? {};
+
+    const challengePromise: any = updateChallenges({ _id: { $in: winnerChallenges } }, { playStatus: 'WIN' });
+    // change challenge status to loss
+    const challengeLossPromise: any = updateChallenges({ _id: { $nin: winnerChallenges } }, { playStatus: 'LOSS' });
+
+    // Find plays
+    const findPlaysPromise = findPlays({ challenge: { $in: winnerChallenges } }, {
+      _id: 1, playBy: 1, amount: 1, event: 1, challenge: 1,
+    });
+
+    const [challenges, plays] = await Promise.all([
+      challengePromise,
+      findPlaysPromise,
+      challengeLossPromise]);
+
+    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), status: 'COMPLETE' }, { select: '_id decisionTakenTime volume fees status' }) as any;
+    const challengesVolume = await getChallengesVolume({ challengeIds: winnerChallenges });
+    const challengesTotalVolume = Array.isArray(challengesVolume) && challengesVolume[0]?.challengesTotalVolume ? challengesVolume[0]?.challengesTotalVolume : 1;
+
+    // calculated the fee
+    const organiserFee = event.volume * (event?.fees ? event?.fees / 100 : 0);
+    const fees = (event.volume * makaoPlatformFeePercentage) + organiserFee;
+
+    // updating the Users's balance and claims
+    const balanceUpdate: any = plays.map((val) => {
+      const profitLoss = (Number((event.volume - fees) / challengesTotalVolume) * Number(val?.amount)) - Number(val?.amount);
+
+      if (profitLoss > 0) {
+        return {
+          updateOne: {
+            filter: { _id: val?.playBy },
+            update: {
+              $inc: { balance: val?.amount },
+              // max Potential win to calculate to win amount
+              $push: {
+                claims: {
+                  amount: profitLoss,
+                  challenge: val?.challenge,
+                },
+              },
+            },
+          },
+        };
+      }
+      return {
+        updateOne: {
+          filter: { _id: val?.playBy },
+          update: {
+            // reducing fee amount from balances
+            $inc: { balance: Number(val?.amount) + profitLoss }, // profitloss value is in - negative, that's why doing + plus
+          },
+        },
+      };
+    });
+
+    // Organiser balance update by fees
+    balanceUpdate.push({
+      updateOne: {
+        filter: { _id: event?.createdBy },
+        update: {
+          $inc: { balance: organiserFee ?? 0 },
+        },
+      },
+    });
+
+    // Makao balance udpate by platform fee pending
+
+    await updateUsersBulkwrite(balanceUpdate);
+
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+
+    const winNotifications = plays.map((val) => ({
+      type: 'PLAY_STATUS',
+      for: val?.playBy,
+      metaData: {
+        eventId: val?.event,
+        status: 'WIN',
+      },
+    }));
+
+    createNotifications(winNotifications);
+
+    return res.status(200).json({
+      message: 'Event decision taken successfully',
+      data: { challenges, event },
+    });
+  } catch (ex: any) {
+    // If there's an error, rollback the transaction
+    await session.abortTransaction();
+    console.error('Transaction aborted:', ex);
+
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  } finally {
+    // End the session
+    session.endSession();
+  }
+}
+
+export async function handleEventDecisionRefund(req: Request, res: Response) {
+  // Create a session for the transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { params: { _id } } = req;
+
+    const challengePromise: any = updateChallenges({ event: _id }, { playStatus: 'REFUND' });
+
+    // Find plays
+    const findPlaysPromise = findPlays({ event: _id }, {
+      _id: 1, playBy: 1, amount: 1, event: 1, challenge: 1,
+    });
+
+    const [challenge, plays] = await Promise.all([
+      challengePromise,
+      findPlaysPromise,
+    ]);
+
+    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), volume: 0, status: 'REFUND' }, { select: '_id decisionTakenTime volume fees status' }) as any;
+
+    // updating the Users's balance
+    const balanceUpdate: any = plays.map((val) => ({
+      updateOne: {
+        filter: { _id: val?.playBy },
+        update: {
+          $inc: { balance: Number(val?.amount) },
+        },
+      },
+    }));
+
+    await updateUsersBulkwrite(balanceUpdate);
+
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+
+    const refundNotifications = plays.map((val) => ({
+      type: 'PLAY_STATUS',
+      for: val?.playBy,
+      metaData: {
+        eventId: val?.event,
+        status: 'REFUND',
+      },
+    }));
+
+    createNotifications(refundNotifications);
+
+    return res.status(200).json({
+      message: 'Event decision taken successfully',
+      data: { challenge, event },
+    });
+  } catch (ex: any) {
+    // If there's an error, rollback the transaction
+    await session.abortTransaction();
+    console.error('Transaction aborted:', ex);
+
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  } finally {
+    // End the session
+    session.endSession();
+  }
+}
+
+export async function handleUserRefundAndKick(req: Request, res: Response) {
+  // Create a session for the transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { body: { type }, params: { _id, userId } } = req;
+
+    // Find plays
+    const findPlaysPromise = findPlays({ event: _id, playBy: userId }, {
+      _id: 1, playBy: 1, amount: 1, event: 1, challenge: 1,
+    });
+
+    // need to find Challenges with Status "DEFAULT" to get volume
+    const challengesWithStatusDefaultPromise = findChallenges(
+      { playStatus: 'DEFAULT', event: _id },
+      { _id: 1 },
+    );
+
+    const [plays, challengesWithStatusDefault] = await Promise.all([
+      findPlaysPromise,
+      challengesWithStatusDefaultPromise,
+    ]);
+
+    const challengeIds = challengesWithStatusDefault.map((val) => val?._id);
+
+    const totalRefundedAmount = plays.reduce((accumulator, play) => accumulator + Number(play?.amount ?? 0), 0);
+
+    const eventPromise = updateEvent(_id as any, { decisionTakenTime: new Date(), $inc: { volume: -totalRefundedAmount } }, { select: '_id decisionTakenTime volume fees' }) as any;
+    const challengesVolumePromise = getEventChallengesVolume({ eventId: _id as any, challengeIds });
+
+    const [event, challengesVolume] = await Promise.all([eventPromise, challengesVolumePromise]);
+
+    const eventVolume = event?.volume ?? 0;
+
+    // caclulated the fee
+    const organiserFee = eventVolume * (event?.fees ? event?.fees / 100 : 0);
+    const fees = (eventVolume * makaoPlatformFeePercentage) + organiserFee;
+
+    // preparing bulk write of updateing odd, it's effected due to we refunded for a challege
+    const challengesUpdate = challengesVolume.filter((val) => val?.challengeVolume).map((update) => ({
+      updateOne: {
+        filter: { _id: update.challenge },
+        update: {
+          $set: {
+            odd: Number(Number((eventVolume - fees) / update.challengeVolume).toFixed(2)),
+          },
+        },
+      },
+    }));
+
+    // updating the Users's balance
+    const balanceUpdate: any = plays.map((val) => ({
+      updateOne: {
+        filter: { _id: val?.playBy },
+        update: {
+          $inc: { balance: Number(val?.amount) },
+        },
+      },
+    }));
+
+    // delete user plays, for refund and kickout
+    const deletedUserPlaysPromise = deletePlays({ event: _id, playBy: userId });
+
+    await Promise.all([
+      updateUsersBulkwrite(type === 'REFUND' ? balanceUpdate : []),
+      updateChallengeBulkwrite(challengesUpdate), // updating challenges updated odds etc
+      deletedUserPlaysPromise,
+    ]);
+
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+
+    const refundNotifications = plays.map((val) => ({
+      type: 'PLAY_STATUS',
+      for: val?.playBy,
+      metaData: {
+        eventId: val?.event,
+        status: type === 'REFUND' ? 'REFUND' : 'KICK',
+      },
+    }));
+
+    createNotifications(refundNotifications);
+
+    return res.status(200).json({
+      message: 'User refunded successfully',
+      data: { event },
+    });
+  } catch (ex: any) {
+    // If there's an error, rollback the transaction
+    await session.abortTransaction();
+    console.error('Transaction aborted:', ex);
+
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  } finally {
+    // End the session
+    session.endSession();
+  }
+}
+
+export async function handlePlayerClaims(req: Request, res: Response) {
+  try {
+    const { body: { challengeIds, userInfo } } = req;
+
+    const unclaimedAmount = await findUserClaims(userInfo?._id, challengeIds?.map((_id: string) => new mongoose.Types.ObjectId(_id)), false);
+
+    if (Array.isArray(unclaimedAmount) && unclaimedAmount.length && Array.isArray(unclaimedAmount[0].claims) && unclaimedAmount[0].claims) {
+      const claimsIds = unclaimedAmount[0].claims.map((val: AnyObject) => val?._id);
+      const updatingBalance = unclaimedAmount[0].claims.filter((claim: AnyObject) => claim?.amount > 0).reduce((accumulator: number, claim: AnyObject) => accumulator + Number(claim?.amount ?? 0), 0);
+
+      console.log('claims Ids', claimsIds);
+      const updatedClaims = await updateUser(
+        { _id: userInfo?._id },
+        {
+          $set: { 'claims.$[elem].status': true },
+        },
+        {
+          arrayFilters: claimsIds.map((claimId: any) => ({ 'elem._id': claimId })),
+        },
+      );
+      const updatedUser = await findOneAndUpdateUser(userInfo?._id, { $inc: { balance: updatingBalance > 0 ? updatingBalance : 0 } }, { _id: 1, balance: 1 });
+      return res.status(200).json({
+        message: 'User refunded successfully',
+        data: { updatedClaims, updatedUser },
+      });
+    }
+
+    return res.status(400).json({
+      message: 'No profit lefts to claims ',
     });
   } catch (ex: any) {
     return res.status(500).json({
