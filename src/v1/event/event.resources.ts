@@ -242,6 +242,7 @@ export async function getEvent(_id: string, userId: string) {
         localField: '_id',
         foreignField: 'event',
         pipeline: [
+          // To calculate user play amount
           {
             $lookup: {
               from: 'plays',
@@ -261,6 +262,24 @@ export async function getEvent(_id: string, userId: string) {
                 },
               ],
               as: 'plays',
+            },
+          },
+
+          // to calculate challenge volume
+          {
+            $lookup: {
+              from: 'plays',
+              localField: '_id',
+              foreignField: 'challenge',
+              pipeline: [
+                {
+                  $group: {
+                    _id: null,
+                    volume: { $sum: '$amount' },
+                  },
+                },
+              ],
+              as: 'challengeVolume',
             },
           },
         ],

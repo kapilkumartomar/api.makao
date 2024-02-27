@@ -413,7 +413,7 @@ export async function handleEventDecisionWin(req: Request, res: Response) {
 
     const challengePromise: any = updateChallenges({ _id: { $in: winnerChallenges } }, { playStatus: 'WIN' });
     // change challenge status to loss
-    const challengeLossPromise: any = updateChallenges({ _id: { $nin: winnerChallenges } }, { playStatus: 'LOSS' });
+    const challengeLossPromise: any = updateChallenges({ _id: { $nin: winnerChallenges, event: _id } }, { playStatus: 'LOSS' });
 
     // Find plays
     const findPlaysPromise = findPlays({ challenge: { $in: winnerChallenges } }, {
@@ -425,7 +425,7 @@ export async function handleEventDecisionWin(req: Request, res: Response) {
       findPlaysPromise,
       challengeLossPromise]);
 
-    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), status: 'COMPLETE' }, { select: '_id decisionTakenTime volume fees status' }) as any;
+    const event = await updateEvent(_id as any, { decisionTakenTime: new Date(), status: 'COMPLETE' }, { select: '_id decisionTakenTime volume fees status createdBy' }) as any;
     const challengesVolume = await getChallengesVolume({ challengeIds: winnerChallenges });
     const challengesTotalVolume = Array.isArray(challengesVolume) && challengesVolume[0]?.challengesTotalVolume ? challengesVolume[0]?.challengesTotalVolume : 1;
 
@@ -605,7 +605,7 @@ export async function handleUserRefundAndKick(req: Request, res: Response) {
 
     const totalRefundedAmount = plays.reduce((accumulator, play) => accumulator + Number(play?.amount ?? 0), 0);
 
-    const eventPromise = updateEvent(_id as any, { decisionTakenTime: new Date(), $inc: { volume: -totalRefundedAmount } }, { select: '_id decisionTakenTime volume fees' }) as any;
+    const eventPromise = updateEvent(_id as any, { $inc: { volume: -totalRefundedAmount, playersCount: -1 } }, { select: '_id volume fees playersCount' }) as any;
     const challengesVolumePromise = getEventChallengesVolume({ eventId: _id as any, challengeIds });
 
     const [event, challengesVolume] = await Promise.all([eventPromise, challengesVolumePromise]);
