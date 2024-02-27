@@ -126,9 +126,9 @@ export async function getEvents(query: IDBQuery, basicQuery?: IDBQuery) {
   return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
 }
 
-export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
+export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery) {
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
-  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift(query);
+  if (typeof query === 'object' && Object.keys(query).length > 0) aggregateQuery.unshift(query);
   mongoose.set('debug', true);
   return Event.aggregate([
     ...aggregateQuery,
@@ -146,16 +146,34 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
       },
     },
     {
+      // this will only gives result when review collection will have that event(means if review is given to that event.)
+      $lookup: {
+        from: 'reviews',
+        localField: '_id',
+        foreignField: 'eventId',
+        as: 'eventReview',
+        pipeline: [
+          {
+            $group: {
+              _id: null,
+              totalReview: { $sum: 1 },
+              averageReview: { $avg: '$review' },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        averageReview: '$eventReview.averageReview',
+      },
+    },
+    {
       $lookup: {
         from: 'plays', // plays collection name
         localField: '_id',
         foreignField: 'event',
         pipeline: [
-          {
-            $match: {
-              playBy: new mongoose.Types.ObjectId(userId),
-            },
-          },
           {
             $group: {
               _id: '$challenge',
@@ -190,28 +208,6 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
     {
       $match: {
         plays: { $exists: true, $ne: [] }, // Filter events with non-empty plays array
-      },
-    },
-    {
-      $lookup: {
-        from: 'reviews',
-        localField: '_id',
-        foreignField: 'eventId',
-        as: 'eventReview',
-        pipeline: [
-          {
-            $group: {
-              _id: null,
-              totalReview: { $sum: 1 },
-              averageReview: { $avg: '$review' },
-            },
-          },
-        ],
-      },
-    },
-    {
-      $addFields: {
-        averageReview: '$eventReview.averageReview',
       },
     },
   ]);
