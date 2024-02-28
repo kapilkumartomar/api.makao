@@ -15,7 +15,7 @@ import {
 } from '@user/user.resources';
 import mongoose, { AnyObject, Types } from 'mongoose';
 import {
-  createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsEventComments, getFriendsPlayingEvents, updateEvent,
+  createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsEventComments, getFriendsPlayingEvents, updateEvent, getOrganisedEvents,
 } from './event.resources';
 import {
   createChallenges, findChallenges, updateChallengeBulkwrite, updateChallenges,
@@ -253,6 +253,31 @@ export async function handleGetEvents(req: Request, res: Response) {
   } catch (ex: any) {
     return res.status(500).json({
       message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetUserOrganisedEvents(req: Request, res: Response) {
+  const { query, body } = req;
+  const userId = body.userInfo._id;
+
+  const {
+    type, ...basicQuery
+  } = query ?? {};
+
+  const rawQuery: IAnyObject = {};
+  rawQuery.createdBy = new mongoose.Types.ObjectId(userId);
+  try {
+    const events = await getOrganisedEvents({ $match: rawQuery }, basicQuery as IDBQuery);
+    return res.status(200).json({
+      message: "User's Organised Events fetched successfully",
+      data: events,
+      page: query?.page ? Number(query?.page) : 1,
+      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err?.message ?? wentWrong,
     });
   }
 }
