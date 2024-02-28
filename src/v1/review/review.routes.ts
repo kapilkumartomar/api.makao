@@ -1,6 +1,6 @@
 import express from 'express';
+import { web3Auth } from '@config/web3Auth';
 
-import { auth } from '@config/auth';
 import {
   handleGetReview,
   handleIsReviewGiven,
@@ -9,8 +9,8 @@ import {
 
 const routes = express.Router();
 
-routes.get('/', auth, handleGetReview);
-routes.get('/:eventId', auth, handleIsReviewGiven);
-routes.post('/', auth, handlePostReview);
+routes.get('/', web3Auth, handleGetReview);
+routes.get('/:eventId', web3Auth, handleIsReviewGiven);
+routes.post('/', web3Auth, handlePostReview);
 
 module.exports = routes;

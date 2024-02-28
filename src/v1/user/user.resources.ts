@@ -5,8 +5,10 @@ import mongoose, { AnyObject } from 'mongoose';
 import User from './user.model';
 import Event from '../event/event.model';
 
+export type ILeaderBoardType = 'FRIEND' | 'PLAYER' | 'ORGANIZER';
+
 export async function findUser(
-  payload: { email?: string, privacy?: boolean, _id?: string, claims?: AnyObject },
+  payload: { email?: string, privacy?: boolean, _id?: string, claims?: AnyObject, ['web3Auth.verifierId']?: string },
   projection?: AnyObject,
   options?: AnyObject,
 ) {
@@ -62,9 +64,9 @@ export async function findUsers(payload: IDBQuery, projectionOptions?: IAnyObjec
   return User.find(payload, projection).limit(30);
 }
 
-export async function updateUsers(payload: { email: string }) {
-  const { email } = payload;
-  return User.find({ email: { $regex: new RegExp(email, 'i') } }, { _id: 1, email: 1 }).limit(30);
+export async function updateUser(filter: IDBQuery, update: AnyObject, projectionOptions?: IAnyObject) {
+  const projection: IAnyObject = projectionOptions ?? {};
+  return User.updateOne(filter, update, projection);
 }
 
 export async function updateUsersBulkwrite(update: BulkWriteOperation[]) {
@@ -89,122 +91,89 @@ export async function findUserFriends(_id: string) {
   return User.findById(_id, '_id friends');
 }
 
-export async function findFriendsLeaderboard(timeQuery: IDBQuery, basicQuery: IDBQuery) {
+export async function findLeaderboard({
+  leaderBoardType, timeQuery, matchQuery, basicQuery,
+}:
+  { leaderBoardType: ILeaderBoardType, timeQuery: IDBQuery, matchQuery: IDBQuery, basicQuery: IDBQuery }) {
   const paginationQuery: any = [...aggregateBasicQueryGenerator({ sortAt: 'performance', ...basicQuery })];
   mongoose.set('debug', true);
-  const aggregateQuery: any = [
-    {
-      $unwind: '$friends',
+
+  let aggregateQuery: any[] = [
+  ];
+
+  const friendAggregate = [{
+    $unwind: '$friends',
+  },
+  {
+    $lookup: {
+      from: 'users', // Assuming the friends are in the 'users' collection
+      localField: 'friends',
+      foreignField: '_id',
+      as: 'friendDetails',
     },
-    {
-      $lookup: {
-        from: 'users', // Assuming the friends are in the 'users' collection
-        localField: 'friends',
-        foreignField: '_id',
-        as: 'friendDetails',
+  },
+  {
+    $replaceRoot: {
+      newRoot: {
+        $mergeObjects: [{}, { $arrayElemAt: ['$friendDetails', 0] }], // Take the first element of the friendDetails array
       },
     },
-    {
-      $replaceRoot: {
-        newRoot: {
-          $mergeObjects: [{}, { $arrayElemAt: ['$friendDetails', 0] }], // Take the first element of the friendDetails array
+  }];
+
+  const projectionAggregate = [{
+    $project: {
+      _id: 1,
+      username: 1,
+      img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
+      claims: 1,
+    },
+  },
+  {
+    $lookup: {
+      from: 'plays',
+      localField: 'claims.challenge',
+      foreignField: 'challenge',
+      as: 'plays',
+    },
+  },
+  {
+    $addFields: {
+      totalProfit: { $sum: '$claims.amount' },
+      totalAmountPlayed: { $sum: '$plays.amount' },
+    },
+  },
+  {
+    $project: {
+      plays: 0,
+      claims: 0,
+    },
+  },
+  {
+    $addFields: {
+      performance: {
+        $cond: {
+          if: { $eq: ['$totalAmountPlayed', 0] }, // Check if totalAmountPlayed is zero
+          then: 0, // Set performance to null if totalAmountPlayed is zero
+          else: { $divide: ['$totalProfit', '$totalAmountPlayed'] }, // Perform the division if totalAmountPlayed is not zero
         },
       },
     },
-    {
-      $project: {
-        _id: 1,
-        username: 1,
-        img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
-        claims: 1,
-      },
-    },
-    {
-      $lookup: {
-        from: 'plays',
-        localField: 'claims.challenge',
-        foreignField: 'challenge',
-        as: 'plays',
-      },
-    },
-    {
-      $addFields: {
-        totalProfit: { $sum: '$claims.amount' },
-        totalAmountPlayed: { $sum: '$plays.amount' },
-      },
-    },
-    {
-      $project: {
-        plays: 0,
-        claims: 0,
-      },
-    },
-    {
-      $addFields: {
-        performance: {
-          $cond: {
-            if: { $eq: ['$totalAmountPlayed', 0] }, // Check if totalAmountPlayed is zero
-            then: 0, // Set performance to null if totalAmountPlayed is zero
-            else: { $divide: ['$totalProfit', '$totalAmountPlayed'] }, // Perform the division if totalAmountPlayed is not zero
-          },
-        },
-      },
-    },
-
-    // pagination
-    ...paginationQuery,
-
+  },
   ];
-  if (typeof timeQuery === 'object' && Object.keys(timeQuery).length) aggregateQuery.unshift(timeQuery);
 
-  return User.aggregate(aggregateQuery);
-}
+  if (typeof matchQuery === 'object' && Object.keys(matchQuery).length) aggregateQuery = aggregateQuery.concat(matchQuery);
 
-// needs to merge logic with above
-export async function findLeaderboard(timeQuery: IDBQuery, basicQuery: IDBQuery) {
-  const paginationQuery: any = [...aggregateBasicQueryGenerator({ sortAt: 'performance', ...basicQuery })];
-  mongoose.set('debug', true);
-  const aggregateQuery: any = [
-    {
-      $project: {
-        _id: 1,
-        username: 1,
-        img: { $concat: [`${process.env.API_URL}profile/`, '$img'] },
-        claims: 1,
-      },
-    },
-    {
-      $lookup: {
-        from: 'plays',
-        localField: 'claims.challenge',
-        foreignField: 'challenge',
-        as: 'plays',
-      },
-    },
-    {
-      $addFields: {
-        totalProfit: { $sum: '$claims.amount' },
-        totalAmountPlayed: { $sum: '$plays.amount' },
-        performance: { $divide: ['$totalProfit', '$totalAmountPlayed'] },
-      },
-    },
-    {
-      $project: {
-        plays: 0,
-        claims: 0,
-      },
-    },
-    {
-      $addFields: {
-        performance: { $divide: ['$totalProfit', '$totalAmountPlayed'] },
-      },
-    },
+  // add friends parts
+  if (leaderBoardType === 'FRIEND') aggregateQuery = aggregateQuery.concat(friendAggregate);
 
-    // pagination
-    ...paginationQuery,
+  // Checking if Time type is given
+  if (typeof matchQuery === 'object' && Object.keys(timeQuery).length) aggregateQuery = aggregateQuery.concat(timeQuery);
 
-  ];
-  if (typeof timeQuery === 'object' && Object.keys(timeQuery).length) aggregateQuery.unshift(timeQuery);
+  // add projection parts
+  aggregateQuery = aggregateQuery.concat(projectionAggregate);
+
+  // pagination
+  aggregateQuery = aggregateQuery.concat(paginationQuery);
 
   return User.aggregate(aggregateQuery);
 }
@@ -309,15 +278,15 @@ export async function IsBlacklistedInUserEvent(userId: string, eventId: string) 
   return isBlacklisted;
 }
 
-export async function findUserClaims(userId: string) {
+export async function findUserClaims(userId: string, challengesIds?: string[], claimStatus?: boolean) {
   mongoose.set('debug', true);
-  return User.aggregate([
+
+  const aggregateQuery: any = [
     {
       $match: {
         _id: new mongoose.Types.ObjectId(userId),
       },
     },
-
     // filtering claims to only true
     {
       $project: {
@@ -327,29 +296,31 @@ export async function findUserClaims(userId: string) {
           $filter: {
             input: '$claims',
             as: 'claims',
-            cond: { $eq: ['$$claims.status', true] },
+            cond: { $eq: ['$$claims.status', claimStatus ?? true] },
           },
         },
       },
     },
-    {
-      $project: {
-        balance: 1,
-        claims: {
-          $sortArray: { input: '$claims', sortBy: { createdAt: -1 } },
-        },
-      },
-    },
+  ];
 
-    // limiting data
-    {
-      $project: {
-        balance: 1,
-        claims: {
-          $slice: ['$claims', 50],
-        },
+  const limitAndSort = [{
+    $project: {
+      balance: 1,
+      claims: {
+        $sortArray: { input: '$claims', sortBy: { createdAt: -1 } },
       },
     },
+  },
+
+  // limiting data
+  {
+    $project: {
+      balance: 1,
+      claims: {
+        $slice: ['$claims', 50],
+      },
+    },
+  },
     // {
     //   $lookup: {
     //     from: 'challenges',
@@ -367,5 +338,27 @@ export async function findUserClaims(userId: string) {
     //     ],
     //   }
     // }
-  ]);
+  ];
+
+  if (Array.isArray(challengesIds) && challengesIds[0]) {
+    aggregateQuery.push(
+      {
+        $project: {
+          _id: 1,
+          balance: 1,
+          claims: {
+            $filter: {
+              input: '$claims',
+              as: 'claims',
+              cond: { $in: ['$$claims.challenge', challengesIds] },
+            },
+          },
+        },
+      },
+    );
+  }
+
+  aggregateQuery.concat(limitAndSort);
+
+  return User.aggregate(aggregateQuery);
 }

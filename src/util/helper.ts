@@ -20,7 +20,7 @@ export function basicQueryGenerator(query?: IDBQuery) {
     ? (Number(page) - 1) * Number(limit)
     : 0;
 
-  const sortOrder = { [sortAt as string]: sortType === 'dsc' ? -1 : 1 };
+  const sortOrder = { [sortAt as string]: sortType === 'dsc' ? -1 : 1, createdAt: -1 };
 
   return {
     sort: sortOrder,
@@ -42,9 +42,9 @@ export function aggregateBasicQueryGenerator(query: IDBQuery) {
   const sortOrder = { [sortAt as string]: sortType === 'dsc' ? -1 : 1 };
 
   return [
-    { $limit: limit },
-    { $skip: offset },
     { $sort: sortOrder },
+    { $skip: offset },
+    { $limit: limit },
   ];
 }
 

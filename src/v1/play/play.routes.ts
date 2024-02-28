@@ -1,6 +1,6 @@
 import express from 'express';
+import { web3Auth } from '@config/web3Auth';
 
-import { auth } from '@config/auth';
 import {
   handleCreatePlay,
 } from './play.controller';
@@ -9,7 +9,7 @@ const routes = express.Router();
 
 routes.post(
   '/',
-  auth,
+  web3Auth,
   handleCreatePlay,
 );
 

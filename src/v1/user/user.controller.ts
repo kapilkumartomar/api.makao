@@ -7,16 +7,17 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { get } from 'lodash';
+import * as jose from 'jose';
 
 import {
   IDBQuery, generateUniqueString, getStartDate, wentWrong,
 } from '@util/helper';
 import fs from 'fs/promises';
+import mongoose from 'mongoose';
 import {
-  createUser, findFriendsLeaderboard, findOrganisersLeaderboard, findOneAndUpdateUser,
+  createUser, findOrganisersLeaderboard, findOneAndUpdateUser,
   findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard, findUserClaims,
-  addBlacklistUserEvents, removeBlacklistUserEvents, IsBlacklistedInUserEvent,
-  findOrganiserTrustNote,
+  addBlacklistUserEvents, removeBlacklistUserEvents, IsBlacklistedInUserEvent, ILeaderBoardType, findOrganiserTrustNote,
 } from './user.resources';
 import { findPlaysWithDetails } from '../play/play.resources';
 
@@ -29,6 +30,13 @@ export async function handleUserSignIn(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
     const query: any = await findUser({ email }, { _id: 1, password: 1 });
+
+    if (email) {
+      return res.status(400).json({
+        message: 'This Signin method is disabled',
+      });
+    }
+
     if (!query?._id) {
       return res.status(400).json({
         message: "Email does't exist",
@@ -65,6 +73,13 @@ export async function handleUserSignUp(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
     const query: any = await findUser({ email });
+
+    if (query?._id) {
+      return res.status(400).json({
+        message: 'This Signup method is disabled',
+      });
+    }
+
     if (query?._id) {
       return res.status(400).json({
         message: 'Email already exist. Please use another email.',
@@ -93,7 +108,13 @@ export async function handleUserSignUp(req: Request, res: Response) {
 export async function handleUsersSearch(req: Request, res: Response) {
   try {
     const { email } = req.query;
-    const query: any = await findUsers({ email: { $regex: new RegExp(email as string, 'i') }, privacy: true }, {
+    const query: any = await findUsers({
+      $or: [
+        { email: { $regex: new RegExp(email as string, 'i') } },
+        { username: { $regex: new RegExp(email as string, 'i') } },
+      ],
+      privacy: true,
+    }, {
       id: 1, username: 1, email: 1, img: 1,
     });
 
@@ -190,23 +211,28 @@ export async function handleUpdateUserProfile(req: Request, res: Response) {
   }
 }
 
-export async function handleUserAddFriend(req: Request, res: Response) {
+export async function handleUserAddRemoveFriend(req: Request, res: Response) {
   try {
     const { body } = req;
+    const { friendId, type, userInfo } = body ?? {};
 
-    if (body?.userInfo?._id === body?.newFriendId) {
+    if (userInfo?._id === friendId) {
       return res.status(500).json({
         message: 'You can add yourself as friend!',
       });
     }
 
     const query: any = await findOneAndUpdateUser(
-      body?.userInfo?._id,
-      { $addToSet: { friends: body?.newFriendId } },
+      userInfo?._id,
+      type === 'UNFRIEND'
+        ? { $pull: { friends: friendId } }
+        : { $addToSet: { friends: friendId } },
     );
 
+    // { $pull: { friends: body?.friendToRemoveId } },
+
     return res.status(200).json({
-      message: 'User add to friend list successfully',
+      message: `User ${type === 'UNFRIEND' ? 'removed' : 'ADDED'} to friend list successfully`,
       data: query,
     });
   } catch (ex: any) {
@@ -234,93 +260,10 @@ export async function handleGetUserFriends(req: Request, res: Response) {
   }
 }
 
-export async function handleGetFriendsLeaderboard(req: Request, res: Response) {
-  try {
-    const { query } = req;
-    const { type, ...basicQuery } = query ?? {};
-
-    let startTime: any = '';
-
-    if (type === 'WEEK') {
-      startTime = getStartDate('WEEK', 'date');
-    }
-    if (type === 'MONTH') {
-      startTime = getStartDate('MONTH', 'date');
-    }
-
-    if (type === '3MONTH') {
-      startTime = getStartDate('3MONTH', 'date');
-    }
-
-    if (type === 'YEAR') {
-      startTime = getStartDate('YEAR', 'date');
-    }
-
-    const friendsLeaderboard: any = await findFriendsLeaderboard(type ? {
-      $match: {
-        // Possibly claims were the last updated
-        'claims.createdAt': { $gte: startTime },
-      },
-    } : {}, basicQuery as IDBQuery);
-
-    return res.status(200).json({
-      message: 'Friend leaderboard fetched successfully',
-      data: friendsLeaderboard ?? [],
-      page: query?.page ? Number(query?.page) : 1,
-      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
-    });
-  } catch (ex: any) {
-    return res.status(500).json({
-      message: ex?.message ?? wentWrong,
-    });
-  }
-}
-
-export async function handleGetOrganisersLeaderboard(req: Request, res: Response) {
-  const { query } = req;
-  const { type, ...basicQuery } = query ?? {};
-
-  try {
-    // const currentDateISO = new Date().toISOString();
-    const timeQuery: IDBQuery = {};
-
-    if (type === 'WEEK') {
-      timeQuery.decisionTime = { $gte: getStartDate('WEEK') };
-    }
-    if (type === 'MONTH') {
-      timeQuery.decisionTime = { $gte: getStartDate('MONTH') };
-    }
-
-    if (type === '3MONTH') {
-      timeQuery.decisionTime = { $gte: getStartDate('3MONTH') };
-    }
-
-    if (type === 'YEAR') {
-      timeQuery.decisionTime = { $gte: getStartDate('YEAR') };
-    }
-
-    const events = await findOrganisersLeaderboard(
-      type ? { $match: timeQuery } as IDBQuery : {},
-      basicQuery as IDBQuery,
-    );
-
-    return res.status(200).json({
-      message: 'Leaderboard fetched successfully',
-      data: events,
-      page: query?.page ? Number(query?.page) : 1,
-      pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
-    });
-  } catch (ex: any) {
-    return res.status(500).json({
-      message: ex?.message ?? wentWrong,
-    });
-  }
-}
-
 export async function handleGetLeaderboard(req: Request, res: Response) {
   try {
-    const { query } = req;
-    const { type, ...basicQuery } = query ?? {};
+    const { query, body } = req;
+    const { type, leaderBoardType, ...basicQuery } = query ?? {};
 
     let startTime: any = '';
 
@@ -339,16 +282,34 @@ export async function handleGetLeaderboard(req: Request, res: Response) {
       startTime = getStartDate('YEAR', 'date');
     }
 
-    const playersLeaderboard: any = await findLeaderboard(type ? {
-      $match: {
-        // Possibly claims were the last updated
-        'claims.createdAt': { $gte: startTime },
-      },
-    } : {}, basicQuery as IDBQuery);
+    const matchQuery: any = {
+      _id: new mongoose.Types.ObjectId(body?.userInfo?._id),
+    };
+
+    let leaderBoard: any = [];
+
+    if (leaderBoardType === 'FRIEND' || leaderBoardType === 'PLAYER') {
+      leaderBoard = await findLeaderboard({
+        leaderBoardType: leaderBoardType as ILeaderBoardType,
+        matchQuery: leaderBoardType === 'FRIEND' ? { $match: matchQuery } : {},
+        timeQuery: type
+          ? {
+            $match: {
+              'claims.createdAt': { $gte: startTime }, // Possibly claims were the last updated
+            },
+          } : {},
+        basicQuery: basicQuery as IDBQuery,
+      });
+    } else if (leaderBoardType === 'ORGANIZER') {
+      leaderBoard = await findOrganisersLeaderboard(
+        type ? { $match: { decisionTime: { $gte: startTime } } } as IDBQuery : {},
+        basicQuery as IDBQuery,
+      );
+    }
 
     return res.status(200).json({
-      message: 'Players leaderboard fetched successfully',
-      data: playersLeaderboard ?? [],
+      message: 'Leader board fetched successfully',
+      data: leaderBoard ?? [],
       page: query?.page ? Number(query?.page) : 1,
       pageSize: query?.pageSize ? Number(query?.pageSize) : 20,
     });
@@ -432,6 +393,102 @@ export async function handleGetWallet(req: Request, res: Response) {
       message: 'Wallet details fetched successfully',
       data: { user, transactions },
     });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleCryptoSignUp(req: Request, res: Response) {
+  try {
+    const { headers } = req;
+
+    // passed from the frontend in the Authorization header
+    const idToken: any = headers?.authorization?.split(' ')[1];
+
+    // passed from the frontend in the request body
+    const appPubKey: any = headers?.apppubkey ?? headers?.appPubKey;
+
+    // passed from the frontend in the request body
+    const publicAddress: any = headers?.address;
+
+    // https://api-auth.web3auth.io/jwks
+
+    // Get the JWK set used to sign the JWT issued by Web3Auth
+    const jwks = jose.createRemoteJWKSet(new URL('https://api.openlogin.com/jwks'));
+
+    // Verify the JWT using Web3Auth's JWKS
+    const jwtDecoded: any = await jose.jwtVerify(idToken, jwks, { algorithms: ['ES256'] });
+
+    // response example
+
+    //   const jwtDecoded = {
+    //     payload: {
+    //       iat: 1708599329,
+    //       aud: 'BM1e_gdPfhavuf8LSHZm5C2E30Rnm01UFnO8Ur1yC6v7usxP-nE6M1GfYG3x8MsGOsM2EohkLiyDOrq8BzaUp0M',
+    //       nonce: '021e38eefac5fbde02409339e26610a9a91201370ab8f39e5f86032147d98438de',
+    //       iss: 'https://api-auth.web3auth.io',
+    //       wallets: [[Object], [Object]],
+    //       email: 'kapil.upwork@gmail.com',
+    //       name: 'Kapil Tomar',
+    //       profileImage: 'https://lh3.googleusercontent.com/a/ACg8ocK_kYGMXNSIbSPMQKhl_mxo6imy9Ck4LPgoQ3YM26jv=s96-c',
+    //       verifier: 'web3auth',
+    //       verifierId: 'kapil.upwork@gmail.com',
+    //       aggregateVerifier: 'web3auth-google-sapphire',
+    //       exp: 1708685729
+    //     },
+    //     protectedHeader: {
+    //       alg: 'ES256',
+    //       typ: 'JWT',
+    //       kid: 'TYOgg_-5EOEblaY-VVRYqVaDAgptnfKV4535MZPC0w0'
+    //     },
+    //     key: PublicKeyObject[KeyObject] {
+    //       [Symbol(kKeyType)]: 'public',
+    //       [Symbol(kAsymmetricKeyType)]: 'ec',
+    //       [Symbol(kAsymmetricKeyDetails)]: { namedCurve: 'prime256v1' }
+    //     }
+    // }
+
+    if (!jwtDecoded?.payload?.verifierId) return res.status(400).json({ message: 'Verification Failed, Verifier Id does not found!' });
+
+    if (!(appPubKey || publicAddress)) {
+      return res.status(401).json({ message: 'Verification Failed, public key or address does not provided!' });
+    }
+
+    // Checking `appPubKey` against the decoded JWT wallet's public_key
+    if ((appPubKey && (jwtDecoded.payload as any).wallets[0]?.public_key?.toLowerCase() === appPubKey?.toLowerCase())
+      || (publicAddress && (jwtDecoded.payload as any).wallets[0]?.address?.toLowerCase() === publicAddress?.toLowerCase())) {
+      // Verified user
+      const {
+        verifierId, verifier, profileImage, name, email,
+      } = jwtDecoded?.payload ?? {};
+
+      const found = await findUser({ 'web3Auth.verifierId': verifierId });
+
+      if (found?._id) {
+        return res.status(200).json({ message: 'Existed user. Verification Successful' });
+      }
+      const payload: any = {
+        web3Auth: { verifierId, verifier },
+      };
+
+      // signup process
+      if (email) payload.email = email;
+      if (name) payload.username = generateUniqueString(4);
+      // name?.toLowerCase().replaceAll(' ', '') +
+
+      if (profileImage) payload.img = profileImage;
+
+      const createdUser = await createUser(payload);
+
+      if (createdUser?._id) return res.status(200).json({ message: 'New User created. Verification Successful' });
+
+      // if all the conditions not worked
+      return res.status(500).json({ message: wentWrong });
+    }
+
+    return res.status(400).json({ message: 'Verification Failed' });
   } catch (ex: any) {
     return res.status(500).json({
       message: ex?.message ?? wentWrong,
