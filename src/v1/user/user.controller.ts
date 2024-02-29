@@ -1,3 +1,6 @@
+/* eslint-disable no-plusplus */
+/* eslint-disable no-confusing-arrow */
+/* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
 
 import { Request, Response } from 'express';

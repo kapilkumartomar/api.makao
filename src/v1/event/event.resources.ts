@@ -126,6 +126,37 @@ export async function getEvents(query: IDBQuery, basicQuery?: IDBQuery) {
   return Event.find(query ?? {}, null, basicQueryGenerator(basicQuery));
 }
 
+export async function getOrganisedEvents(query: IDBQuery, basicQuery: IDBQuery) {
+  mongoose.set('debug', true);
+  const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
+  if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift(query);
+  return Event.aggregate([
+    ...aggregateQuery,
+    {
+      $lookup: {
+        from: 'reviews',
+        localField: '_id',
+        foreignField: 'eventId',
+        as: 'eventReview',
+        pipeline: [
+          {
+            $group: {
+              _id: null,
+              totalReview: { $sum: 1 },
+              averageReview: { $avg: '$review' },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        averageReview: '$eventReview.averageReview',
+      },
+    },
+  ]);
+}
+
 export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, userId: any) {
   const aggregateQuery: any = [...aggregateBasicQueryGenerator(basicQuery)];
   if (typeof query === 'object' && Object.keys(query).length) aggregateQuery.unshift(query);

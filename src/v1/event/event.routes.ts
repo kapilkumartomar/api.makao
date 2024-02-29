@@ -20,6 +20,7 @@ import {
   handlePlayerClaims,
   handleGetFriendsComments,
   handleUpdateEventFormData,
+  handleGetUserOrganisedEvents,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
 
@@ -44,6 +45,12 @@ routes.get(
   '/user',
   web3Auth,
   handleGetUserEvents,
+);
+
+routes.get(
+  '/userorganisedevents',
+  web3Auth,
+  handleGetUserOrganisedEvents,
 );
 
 routes.get(
