@@ -28,7 +28,7 @@ export const validateCreateEvent = [
 
       return true;
     }),
-  body('category').not().isEmpty(),
+  // body('category').not().isEmpty(),
 ];
 
 export const validateCreateComment = [

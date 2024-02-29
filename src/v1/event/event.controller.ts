@@ -17,10 +17,7 @@ import mongoose, { AnyObject, Types } from 'mongoose';
 import {
   createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsEventComments, getFriendsPlayingEvents, updateEvent,
 } from './event.resources';
-import {
-  createChallenges, findChallenges, updateChallengeBulkwrite, updateChallenges,
-} from '../challenge/challenge.resources';
-import { IChallenge } from '../challenge/challenge.model';
+import { findChallenges, updateChallengeBulkwrite, updateChallenges } from '../challenge/challenge.resources';
 import { IEvent } from './event.model';
 import { createNotifications } from '../notification/notification.resources';
 import { findCategories } from '../category/category.resources';
@@ -57,14 +54,13 @@ export async function handleCreateEvent(req: Request, res: Response) {
       );
     }
 
-    console.log('image name');
-    const reqChallenges = JSON.parse(body.challenges);
-    delete body.challenges;
+    // const reqChallenges = JSON.parse(body.challenges);
+    // delete body.challenges;
     const eventPromise = createEvent({ ...body, img: imgName, createdBy: body.userInfo?._id });
     const userFriendsPromise = findUserFriends(body.userInfo?._id);
     const [event, userFriends] = await Promise.all([eventPromise, userFriendsPromise]);
 
-    const challenges = await createChallenges(reqChallenges.map((val: IChallenge) => ({ ...val, createdBy: body.userInfo?._id, event: event?._id })));
+    // const challenges = await createChallenges(reqChallenges.map((val: IChallenge) => ({ ...val, createdBy: body.userInfo?._id, event: event?._id })));
 
     // creating notification to friends
     const notifications = userFriends?.friends.map((val) => ({
@@ -82,7 +78,7 @@ export async function handleCreateEvent(req: Request, res: Response) {
     await session.commitTransaction();
     return res.status(200).json({
       message: 'Event created successfully',
-      data: { ...event.toJSON(), challenges },
+      data: { ...event.toJSON(), challenges: [] },
     });
   } catch (ex: any) {
     await session.abortTransaction();
@@ -147,9 +143,8 @@ export async function handleGetFriendsComments(req: Request, res: Response) {
 
   try {
     const userFriends = await findUserFriendsDetails(body?.userInfo?._id);
-    console.log('user fie', userFriends);
+
     const friendIds = userFriends?.friends?.map((val) => val?._id);
-    console.log('user fied', friendIds);
 
     const friendsEventComments = await getFriendsEventComments(eventId as any, query, friendIds as any[]);
 
@@ -170,12 +165,11 @@ export async function handleGetFriendsComments(req: Request, res: Response) {
   }
 }
 
-// updte an event
+// update an event
 export async function handleUpdateEvent(req: Request, res: Response) {
-  const { body, params } = req;
-  const eventId = params._id;
-
   try {
+    const { body, params } = req;
+    const eventId = params._id;
     const updatedEvent = await updateEvent(eventId as any, body);
 
     if (updatedEvent?._id && body?.newInvitations && Array.isArray(body?.newInvitations)) {
@@ -190,6 +184,46 @@ export async function handleUpdateEvent(req: Request, res: Response) {
 
       createNotifications(notifications);
     }
+
+    if (!updatedEvent) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Event updated successfully',
+      data: updatedEvent,
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+// update an event
+export async function handleUpdateEventFormData(req: Request, res: Response) {
+  try {
+    const { body, params } = req;
+    const { files } = req as any;
+    const eventId = params._id;
+
+    let imgName = '';
+    // conditionally checking for image
+    if (files && Array.isArray(files?.img) && files?.img[0]) {
+      const imageFile: any = files?.img[0];
+
+      const uniquePrefix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      imgName = `img-${body.userInfo?._id}-${uniquePrefix}-${imageFile?.originalname}`;
+
+      await fs.writeFile(
+        `${dirname}public/images/${imgName}`,
+        imageFile?.buffer as any,
+      );
+
+      if (imgName) body.img = imgName;
+    }
+
+    const updatedEvent = await updateEvent(eventId as any, body);
 
     if (!updatedEvent) {
       return res.status(404).json({ error: 'Event not found' });
