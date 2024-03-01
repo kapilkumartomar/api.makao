@@ -34,6 +34,7 @@ export interface IEvent extends Document {
   invitations: Array<Schema.Types.ObjectId>;
   platformFees?: number
   status?: IEventStatus
+  userBalance?: number
 }
 
 const eventSchema = new Schema<IEvent>({
