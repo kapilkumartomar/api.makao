@@ -53,8 +53,8 @@ export async function handleIsReviewGiven(req: Request, res: Response) {
 
 export async function handlePostReview(req: Request, res: Response) {
   try {
-    const { _id: userId } = req.body.userInfo;
-    const reviewsPromise: any = postReview(req.body);
+    const { eventId, userInfo: { _id: userId }, userReview } = req.body;
+    const reviewsPromise: any = postReview({ eventId, userId, userReview });
     const challengesPromise: any = findChallenges({ event: req.body.eventId });
 
     const [reviews, challenges] = await Promise.all([reviewsPromise, challengesPromise]);
@@ -127,39 +127,6 @@ export async function handlePostReview(req: Request, res: Response) {
       const challengeIds = challenges?.map((val: AnyObject) => val?._id);
       unclaimedAmount = await findUserClaims(userId, challengeIds, false);
     }
-
-    // user-trust-score logic
-    // if (givenReview === 0) {
-    //   user.userTrustNote = Math.max(
-    //     minTrustNote,
-    //     currentTrustNote - currentTrustNote * baseChangePercentage
-    //   );
-    // } else if (givenReview === 1) {
-    //   user.userTrustNote = Math.min(
-    //     maxTrustNote,
-    //     currentTrustNote + currentTrustNote * baseChangePercentage
-    //   );
-    // }
-    // Removing the increase n decrease in user's trust note value on player's validate/refute for now.(will implement cron-job review-all approach)
-    // const maxTrustNote = 5; // Maximum trust note
-    // const minTrustNote = 0; // Minimum trust note
-    // const baseChangePercentage = 0.05;
-    // await findOneAndUpdateUser(userId, [
-    //   {
-    //     $set:
-    //     {
-    //       userTrustNote:
-    //       {
-    //         $cond: {
-    //           if: { $eq: [givenReview, 0] },
-    //           then: { $max: [minTrustNote, { $subtract: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }] },
-    //           // removing this increase in player trust-note logic as nothing to do when player gives a true decision of an event.
-    //           // else: { $min: [maxTrustNote, { $add: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }] },
-    //         },
-    //       },
-    //     },
-    //   },
-    // ]);
 
     return res.status(200).json({
       message: 'Reviews Posted successfully',
