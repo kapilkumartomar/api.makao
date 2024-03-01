@@ -6,6 +6,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { get } from 'lodash';
 import * as jose from 'jose';
 
 import {

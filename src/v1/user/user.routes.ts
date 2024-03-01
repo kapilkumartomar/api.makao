@@ -10,7 +10,7 @@ import {
   handleGetOtherUser,
   handleGetWallet,
   handlePostBlacklist, handlePatchUnBlacklist, handleGetIsBlacklisted, handleUserAddRemoveFriend,
-  handleCryptoSignUp,
+  handleCryptoSignUp, handleGetOrganiserTrustNote
 } from './user.controller';
 import {
   validateEmail,
@@ -37,7 +37,6 @@ routes.get('/friends', web3Auth, handleGetUserFriends);
 routes.get('/wallet', web3Auth, handleGetWallet);
 
 routes.post('/cryptoSignup', handleCryptoSignUp);
-
 routes.get('/leaderboard', web3Auth, handleGetLeaderboard);
 // routes.get('/leaderboard/friends', web3Auth, handleGetLeaderboard);
 // routes.get('/leaderboard/organisers', web3Auth, handleGetOrganisersLeaderboard);
