@@ -361,6 +361,7 @@ export async function handleGetEvent(req: Request, res: Response) {
     singleEvent.img = `${process.env.API_URL}images/${img}`;
     singleEvent.platformFees = makaoPlatformFee;
     singleEvent.userBalance = body?.userInfo?.balance;
+    singleEvent.fetchingUserId = body?.userInfo?._id;
 
     return res.status(200).json({
       message: 'Event fetched successfully',

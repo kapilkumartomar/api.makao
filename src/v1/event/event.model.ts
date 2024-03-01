@@ -35,6 +35,7 @@ export interface IEvent extends Document {
   platformFees?: number
   status?: IEventStatus
   userBalance?: number
+  fetchingUserId?: string
 }
 
 const eventSchema = new Schema<IEvent>({
