@@ -6,6 +6,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { get } from 'lodash';
 import * as jose from 'jose';
 
 import {
@@ -16,7 +17,7 @@ import mongoose from 'mongoose';
 import {
   createUser, findOrganisersLeaderboard, findOneAndUpdateUser,
   findUser, findUserById, findUserFriendsDetails, findUsers, findLeaderboard, findUserClaims,
-  addBlacklistUserEvents, removeBlacklistUserEvents, IsBlacklistedInUserEvent, ILeaderBoardType,
+  addBlacklistUserEvents, removeBlacklistUserEvents, IsBlacklistedInUserEvent, ILeaderBoardType, findOrganiserTrustNote,
 } from './user.resources';
 import { findPlaysWithDetails } from '../play/play.resources';
 
@@ -491,6 +492,26 @@ export async function handleCryptoSignUp(req: Request, res: Response) {
   } catch (ex: any) {
     return res.status(500).json({
       message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetOrganiserTrustNote(req: Request, res: Response) {
+  try {
+    const { body } = req;
+    const organisertrustnotes: any = await findOrganiserTrustNote(body?.userInfo?._id);
+    let totolReviewedEvents = 0;
+    const reducedTurstNoteAverage = organisertrustnotes.reduce((acc: number, item: any) => get(item, 'averageEventReview[0]', null) ? (++totolReviewedEvents && acc + get(item, 'averageEventReview[0]')) : acc, 0);
+
+    // remember if 0/0 thien this will give NaN, only possible when organiser's any event is not reviewed.
+    const organiserTrustNote = (reducedTurstNoteAverage / totolReviewedEvents) * 5; // this organiserTrustNote is out of 5.
+    return res.status(200).json({
+      message: "Organiser's Trust Note fetched successfully",
+      data: { organiserTrustNote },
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err?.message ?? wentWrong,
     });
   }
 }
