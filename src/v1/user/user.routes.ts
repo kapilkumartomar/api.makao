@@ -37,7 +37,6 @@ routes.get('/friends', web3Auth, handleGetUserFriends);
 routes.get('/wallet', web3Auth, handleGetWallet);
 
 routes.post('/cryptoSignup', handleCryptoSignUp);
-routes.get('/organisertrustnote', web3Auth, handleGetOrganiserTrustNote);
 routes.get('/leaderboard', web3Auth, handleGetLeaderboard);
 // routes.get('/leaderboard/friends', web3Auth, handleGetLeaderboard);
 // routes.get('/leaderboard/organisers', web3Auth, handleGetOrganisersLeaderboard);
