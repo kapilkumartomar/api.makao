@@ -20,6 +20,13 @@ export async function handleCreatePlay(req: Request, res: Response) {
   try {
     const { body } = req;
 
+    // Checking for playing user balance
+    if (body?.userInfo?.balance < body?.amount) {
+      return res.status(500).json({
+        message: 'You don\'t have enough balance to play bet.',
+      });
+    }
+
     // checking for organiser
     // const eventInfoPromise = await findEventById(body?.event);
 

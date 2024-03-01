@@ -7,6 +7,7 @@ export async function MongoConnection() {
     useUnifiedTopology: true,
   };
   try {
+    console.log('db ready state', mongoose.connection.readyState);
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(process.env.CONNECTION_STRING as string, config);
     }

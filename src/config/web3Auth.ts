@@ -42,9 +42,9 @@ export async function web3Auth(req: Request, res: Response, next: NextFunction) 
       if (!jwtDecoded?.payload?.verifierId) return res.status(401).json({ message: 'Verification Failed, Verifier Id does not found!' });
 
       // getting user details
-      const found = await findUser({ 'web3Auth.verifierId': jwtDecoded?.payload?.verifierId }, { _id: 1 });
+      const found = await findUser({ 'web3Auth.verifierId': jwtDecoded?.payload?.verifierId }, { _id: 1, balance: 1 });
       if (found) {
-        req.body.userInfo = { _id: found?._id?.toString() } as any;
+        req.body.userInfo = { _id: found?._id?.toString(), balance: found?.balance } as any;
         return next();
       }
 
