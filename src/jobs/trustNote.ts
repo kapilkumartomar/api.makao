@@ -6,10 +6,10 @@
 import mongoose from 'mongoose';
 import { uniq } from 'lodash';
 import parentPort from 'worker_threads';
-import { findOneAndUpdateUser } from '@user/user.resources';
-import { findReview, postReview } from 'src/v1/review/review.resources';
-import { getEvents } from 'src/v1/event/event.resources';
-import { findPlays } from 'src/v1/play/play.resources';
+import { findOneAndUpdateUser } from '../v1/user/user.resources';
+import { findReview, postReview } from '../v1/review/review.resources';
+import { getEvents } from '../v1/event/event.resources';
+import { findPlays } from '../v1/play/play.resources';
 import MongoConnection from '../config/mongoConnection';
 
 (async () => {
