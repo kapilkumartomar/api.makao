@@ -19,8 +19,8 @@ import {
   handleUpdateEvent,
   handlePlayerClaims,
   handleGetFriendsComments,
-  handleUpdateEventFormData,
   handleGetUserOrganisedEvents,
+  handleUpdateEventFormData,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
 

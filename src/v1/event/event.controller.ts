@@ -360,6 +360,7 @@ export async function handleGetEvent(req: Request, res: Response) {
     const { img } = singleEvent;
     singleEvent.img = `${process.env.API_URL}images/${img}`;
     singleEvent.platformFees = makaoPlatformFee;
+    singleEvent.userBalance = body?.userInfo?.balance;
 
     return res.status(200).json({
       message: 'Event fetched successfully',
