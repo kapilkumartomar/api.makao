@@ -20,6 +20,41 @@ export async function findUserById({ _id }: { _id: string }) {
   return User.findById({ _id }).populate('blacklistedUsers');
 }
 
+export async function findOrganiserTrustNote(_id : string) {
+  mongoose.set('debug', true);
+  return Event.aggregate([
+    {
+      $match: {
+        createdBy: new mongoose.Types.ObjectId(_id),
+      },
+    },
+    {
+      $lookup: {
+        from: 'reviews',
+        localField: '_id',
+        foreignField: 'eventId',
+        as: 'eventTrustAverage',
+        pipeline: [
+          {
+            $group: {
+              _id: null,
+              totalReviewedEvents: { $sum: 1 },
+              averageEventReview: { $avg: '$review' },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        eventId: '$_id',
+        averageEventReview: '$eventTrustAverage.averageEventReview',
+      },
+    },
+  ]);
+}
+
 export async function createUser(payload: { email: string, password: string, username?: string }) {
   return User.create(payload);
 }
