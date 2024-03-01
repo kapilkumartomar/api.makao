@@ -19,6 +19,7 @@ import {
   handleUpdateEvent,
   handlePlayerClaims,
   handleGetFriendsComments,
+  handleUpdateEventFormData,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
 
@@ -60,6 +61,7 @@ routes.get(
 routes.get('/:_id', web3Auth, handleGetEvent);
 
 routes.patch('/:_id', web3Auth, validate(validateUpdateEvent), handleUpdateEvent);
+routes.patch('/:_id/formData', upload.fields([{ name: 'img', maxCount: 1 }]), web3Auth, validate(validateUpdateEvent), handleUpdateEventFormData);
 
 routes.post('/:_id/comment', web3Auth, validate(validateCreateComment), handleCreateComment);
 
