@@ -1,10 +1,14 @@
+/* eslint-disable max-len */
 import { Request, Response } from 'express';
 
 import { wentWrong } from '@util/helper';
-import { AnyObject } from 'mongoose';
+import mongoose, { AnyObject } from 'mongoose';
+import User from '@user/user.model';
+import { get } from 'lodash';
 import { findIsReviewGiven, findReview, postReview } from './review.resources';
-import { findOneAndUpdateUser, findUserClaims } from '../user/user.resources';
+import { findUserClaims } from '../user/user.resources';
 import { findChallenges } from '../challenge/challenge.resources';
+import Event from '../event/event.model';
 
 export async function handleGetReview(req: Request, res: Response) {
   try {
@@ -49,11 +53,71 @@ export async function handleIsReviewGiven(req: Request, res: Response) {
 
 export async function handlePostReview(req: Request, res: Response) {
   try {
-    const { _id: userId } = req.body.userInfo;
-    const reviewsPromise: any = postReview(req.body);
+    const { eventId, userInfo: { _id: userId }, userReview } = req.body;
+    const reviewsPromise: any = postReview({ eventId, userId, userReview });
     const challengesPromise: any = findChallenges({ event: req.body.eventId });
 
     const [reviews, challenges] = await Promise.all([reviewsPromise, challengesPromise]);
+
+    {
+      // below written code is for increasing organiser's trust-note --> average of all of his events.
+
+      const { createdBy: eventOwnerId } = await Event.findById(req.body.eventId);
+      const updatedAverageReview = await Event.aggregate([
+        {
+          $match: {
+            _id: new mongoose.Types.ObjectId(req.body.eventId),
+          },
+        },
+        {
+          $lookup: {
+            from: 'reviews',
+            localField: '_id',
+            foreignField: 'eventId',
+            as: 'eventTrustAverage',
+            pipeline: [
+              {
+                $group: {
+                  _id: null,
+                  totalReviewedEvents: { $sum: 1 },
+                  averageEventReview: { $avg: '$review' },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            eventId: '$_id',
+            averageEventReview: '$eventTrustAverage.averageEventReview',
+            eventTrustAverage: '$eventTrustAverage',
+          },
+        },
+      ]);
+
+      const previousAverageReview = get(updatedAverageReview, '[0].averageEventReview[0]', '') * 5; // to put rating on 5's scale
+
+      const { userTrustNote: currentUserTrustNote } = await User.findOne(eventOwnerId);
+
+      const finalUserTrustNote = (currentUserTrustNote + previousAverageReview) / 2; // recalculate User's average TrustNote.
+
+      const organiserNewTrustNote = await User.findOneAndUpdate(
+        {
+          _id: eventOwnerId,
+        },
+        {
+          $set: {
+            userTrustNote: finalUserTrustNote,
+          },
+        },
+        {
+          returnDocument: 'after',
+        },
+      );
+
+      console.log("Organiser's userTrustNote is increased by " + `\x1b[1;31m${previousAverageReview}\x1b[0m` + ' in average, new userTrustNote is ' + `\x1b[1;31m${organiserNewTrustNote!.userTrustNote}\x1b[0m`);
+    }
 
     const givenReview = reviews[0].review;
     let unclaimedAmount: any = {};
@@ -63,37 +127,6 @@ export async function handlePostReview(req: Request, res: Response) {
       const challengeIds = challenges?.map((val: AnyObject) => val?._id);
       unclaimedAmount = await findUserClaims(userId, challengeIds, false);
     }
-
-    // user-trust-score logic
-    // if (givenReview === 0) {
-    //   user.userTrustNote = Math.max(
-    //     minTrustNote,
-    //     currentTrustNote - currentTrustNote * baseChangePercentage
-    //   );
-    // } else if (givenReview === 1) {
-    //   user.userTrustNote = Math.min(
-    //     maxTrustNote,
-    //     currentTrustNote + currentTrustNote * baseChangePercentage
-    //   );
-    // }
-    const maxTrustNote = 5; // Maximum trust note
-    const minTrustNote = 0; // Minimum trust note
-    const baseChangePercentage = 0.05;
-    await findOneAndUpdateUser(userId, [
-      {
-        $set:
-        {
-          userTrustNote:
-          {
-            $cond: {
-              if: { $eq: [givenReview, 0] },
-              then: { $max: [minTrustNote, { $subtract: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }] },
-              else: { $min: [maxTrustNote, { $add: ['$userTrustNote', { $multiply: ['$userTrustNote', baseChangePercentage] }] }] },
-            },
-          },
-        },
-      },
-    ]);
 
     return res.status(200).json({
       message: 'Reviews Posted successfully',

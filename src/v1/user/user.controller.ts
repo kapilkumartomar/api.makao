@@ -1,8 +1,12 @@
+/* eslint-disable no-plusplus */
+/* eslint-disable no-confusing-arrow */
+/* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
 
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { get } from 'lodash';
 import * as jose from 'jose';
 
 import {
