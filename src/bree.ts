@@ -7,7 +7,7 @@ const bree = new Bree({
   worker: {
     env: {
       CONNECTION_STRING:
-                'mongodb+srv://kapilupwork:itIMKgxtqchCvEX0@cluster0.x3br2lu.mongodb.net/?retryWrites=true&w=majority',
+        'mongodb+srv://kapilupwork:itIMKgxtqchCvEX0@cluster0.x3br2lu.mongodb.net/?retryWrites=true&w=majority',
       API_URL: 'http://localhost:9987/',
       JWT_STRING: 'makao#321',
     },
@@ -15,8 +15,13 @@ const bree = new Bree({
   jobs: [
     {
       name: 'job',
+      interval: 'at 12:00 am',
+      // interval: '1m',
+    },
+    {
+      name: 'trustNote',
       // interval: 'at 12:00 am',
-      interval: '50s',
+      interval: '1m',
     },
   ],
   errorHandler: (error, workerMetadata) => {
