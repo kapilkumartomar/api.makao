@@ -50,8 +50,8 @@ export async function handleIsReviewGiven(req: Request, res: Response) {
 
 export async function handlePostReview(req: Request, res: Response) {
   try {
-    const { _id: userId } = req.body.userInfo;
-    const reviewsPromise: any = postReview(req.body);
+    const { eventId, userInfo: { _id: userId }, userReview } = req.body;
+    const reviewsPromise: any = postReview({ eventId, userId, userReview });
     const challengesPromise: any = findChallenges({ event: req.body.eventId });
 
     const [reviews, challenges] = await Promise.all([reviewsPromise, challengesPromise]);
