@@ -464,11 +464,20 @@ export async function handleCryptoSignUp(req: Request, res: Response) {
         verifierId, verifier, profileImage, name, email,
       } = jwtDecoded?.payload ?? {};
 
-      const found = await findUser({ 'web3Auth.verifierId': verifierId });
+      const promises = [findUser({ 'web3Auth.verifierId': verifierId })];
 
-      if (found?._id) {
+      promises.push(findUser({ email }));
+
+      const [foundUser, foundUserWithEmail] = await Promise.all(promises);
+
+      if (foundUser?._id) {
         return res.status(200).json({ message: 'Existed user. Verification Successful' });
       }
+
+      if (foundUserWithEmail?._id) {
+        return res.status(500).json({ message: 'Account already existed with this email! Please use correct method.' });
+      }
+
       const payload: any = {
         web3Auth: { verifierId, verifier },
       };
