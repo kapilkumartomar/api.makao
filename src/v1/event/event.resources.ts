@@ -154,6 +154,20 @@ export async function getOrganisedEvents(query: IDBQuery, basicQuery: IDBQuery) 
         averageReview: '$eventReview.averageReview',
       },
     },
+    {
+      $project: {
+        name: 1,
+        img: { $concat: [`${process.env.API_URL}images/`, '$img'] },
+        fees: 1,
+        volume: 1,
+        playersCount: 1,
+        createdAt: 1,
+        decisionTakenTime: 1,
+        createdBy: 1,
+        startTime: 1,
+        endTime: 1,
+      },
+    },
   ]);
 }
 
@@ -174,6 +188,8 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
         createdAt: 1,
         decisionTakenTime: 1,
         createdBy: 1,
+        startTime: 1,
+        endTime: 1,
       },
     },
     {
@@ -246,20 +262,6 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
       },
     },
   ]);
-  // return Play.aggregate([
-  //   {
-  //     $match: {
-  //       playBy: new mongoose.Types.ObjectId(userId),
-  //     },
-  //   },
-  //   {
-  //     $group: {
-  //       _id: '$challenge',
-  //       totalAmount: { $sum: '$amount' },
-  //     },
-  //   },
-
-  // ])
 }
 
 export async function getEvent(_id: string, userId: string) {
