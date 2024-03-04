@@ -11,6 +11,6 @@ const routes = express.Router();
 
 routes.get('/', web3Auth, handleGetReview);
 routes.get('/:eventId', web3Auth, handleIsReviewGiven);
-routes.post('/', handlePostReview);
+routes.post('/', web3Auth, handlePostReview);
 
 module.exports = routes;
