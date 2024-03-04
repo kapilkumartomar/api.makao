@@ -55,7 +55,7 @@ export async function handleCreatePlay(req: Request, res: Response) {
     //   });
     // }
 
-    // logic regaring if User alreay played for challenge, then add sum otherwise creating new play
+    // logic regarding if User already played for challenge, then add sum otherwise creating new play
     let play: any;
     if (alreadyPlayedForChallenge) {
       play = await findOneAndUpdatePlay(alreadyPlayedForChallenge?._id as any, { amount: alreadyPlayedForChallenge?.amount + body?.amount });
@@ -107,7 +107,7 @@ export async function handleCreatePlay(req: Request, res: Response) {
     if (!alreadyPlayer) updateEventPayload.$inc = { playersCount: 1 };
 
     // updating the respective
-    const updatedEventPromise = updateEvent(play?.event as any, updateEventPayload, { select: '_id volume playersCount' });
+    const updatedEventPromise = updateEvent(play?.event as any, updateEventPayload, { select: '_id volume playersCount createdBy' });
     const updatedChallengesPromise = updateChallengeBulkwrite(challengesUpdate);
     const updatedUserBalance = updateUsersBulkwrite(balanceUpdate);
 

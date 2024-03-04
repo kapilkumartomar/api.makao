@@ -10,7 +10,7 @@ import {
   handleGetOtherUser,
   handleGetWallet,
   handlePostBlacklist, handlePatchUnBlacklist, handleGetIsBlacklisted, handleUserAddRemoveFriend,
-  handleCryptoSignUp, handleGetOrganiserTrustNote,
+  handleCryptoSignUp,
 } from './user.controller';
 import {
   validateEmail,
