@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+/* eslint-disable no-console */
 import { Request, Response } from 'express';
 
 import { wentWrong } from '@util/helper';
@@ -62,7 +63,7 @@ export async function handlePostReview(req: Request, res: Response) {
     {
       // below written code is for increasing organiser's trust-note --> average of all of his events.
 
-      const { createdBy: eventOwnerId } = await Event.findById(req.body.eventId);
+      const { createdBy: eventOwnerId } = await Event.findById(req.body.eventId)!;
       const updatedAverageReview = await Event.aggregate([
         {
           $match: {
@@ -116,7 +117,7 @@ export async function handlePostReview(req: Request, res: Response) {
         },
       );
 
-      console.log("Organiser's userTrustNote is increased by " + `\x1b[1;31m${previousAverageReview}\x1b[0m` + ' in average, new userTrustNote is ' + `\x1b[1;31m${organiserNewTrustNote!.userTrustNote}\x1b[0m`);
+      console.log(`Organiser's userTrustNote is increased by \x1b[1;31m${previousAverageReview}\x1b[0m in average, new userTrustNote is \x1b[1;31m${organiserNewTrustNote!.userTrustNote}\x1b[0m`);
     }
 
     const givenReview = reviews[0].review;
