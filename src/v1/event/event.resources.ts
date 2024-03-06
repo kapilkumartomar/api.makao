@@ -166,6 +166,7 @@ export async function getOrganisedEvents(query: IDBQuery, basicQuery: IDBQuery) 
         createdBy: 1,
         startTime: 1,
         endTime: 1,
+        averageReview: 1,
       },
     },
   ]);
