@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 import { updateUsersBulkwrite } from '@user/user.resources';
 import { uniq } from 'lodash';
 import {
-  createChallenge, findChallenges, updateChallenge, updateChallengeBulkwrite, updateChallenges,
+  createChallenge, findChallenges, updateChallenge, updateChallengeBulkwrite,
 } from './challenge.resources';
 import { createNotifications } from '../notification/notification.resources';
 import { findPlays, getEventChallengesVolume } from '../play/play.resources';
