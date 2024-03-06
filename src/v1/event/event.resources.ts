@@ -150,11 +150,6 @@ export async function getOrganisedEvents(query: IDBQuery, basicQuery: IDBQuery) 
       },
     },
     {
-      $addFields: {
-        averageReview: '$eventReview.averageReview',
-      },
-    },
-    {
       $project: {
         name: 1,
         img: { $concat: [`${process.env.API_URL}images/`, '$img'] },
@@ -166,6 +161,11 @@ export async function getOrganisedEvents(query: IDBQuery, basicQuery: IDBQuery) 
         createdBy: 1,
         startTime: 1,
         endTime: 1,
+      },
+    },
+    {
+      $addFields: {
+        averageReview: '$eventReview.averageReview',
       },
     },
   ]);
