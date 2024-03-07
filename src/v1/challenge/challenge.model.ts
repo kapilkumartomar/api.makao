@@ -20,7 +20,7 @@ const challengeSchema = new Schema<IChallenge>({
   },
   logic: {
     type: String,
-    required: true,
+    default: '',
   },
   status: {
     type: Boolean,
