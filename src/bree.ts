@@ -20,8 +20,8 @@ const bree = new Bree({
     },
     {
       name: 'trustNote',
-      // interval: 'at 12:00 am',
-      interval: '1m',
+      interval: 'at 12:00 am',
+      // interval: '1m',
     },
   ],
   errorHandler: (error, workerMetadata) => {
