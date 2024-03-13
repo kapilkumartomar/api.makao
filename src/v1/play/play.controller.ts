@@ -75,7 +75,7 @@ export async function handleCreatePlay(req: Request, res: Response) {
     const eventVolume = Array.isArray(eventVolumeRes) ? eventVolumeRes[0]?.eventVolume : 0;
     // const challengeVolume = Array.isArray(challengesVolumeRes) ? challengesVolumeRes[0]?.challengeVolume : 0;
 
-    // caclulated the fee
+    // calculated the fee
     const organiserFee = eventVolume * (body?.fees ? body?.fees / 100 : 0);
     const fees = (eventVolume * makaoPlatformFeePercentage) + organiserFee;
 
