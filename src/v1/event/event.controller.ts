@@ -1,4 +1,3 @@
-/* eslint-disable no-param-reassign */
 /* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
 /* eslint-disable no-console */
@@ -17,8 +16,6 @@ import {
 import mongoose, { AnyObject, Types } from 'mongoose';
 import {
   createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsEventComments, getFriendsPlayingEvents, updateEvent, getOrganisedEvents,
-  getEventChallenges,
-  findEventById,
 } from './event.resources';
 import { findChallenges, updateChallengeBulkwrite, updateChallenges } from '../challenge/challenge.resources';
 import { IEvent } from './event.model';
@@ -369,45 +366,6 @@ export async function handleGetEvent(req: Request, res: Response) {
     return res.status(200).json({
       message: 'Event fetched successfully',
       data: singleEvent,
-    });
-  } catch (ex: any) {
-    console.error('Error : ', ex);
-    return res.status(500).json({
-      message: ex?.message ?? wentWrong,
-    });
-  }
-}
-
-export async function handleGetEventChallenges(req: Request, res: Response) {
-  const { params, body } = req;
-  try {
-    const EventChallengesData = await getEventChallenges(params?.eventId, body?.userInfo?._id);
-    const { fees } = await findEventById(params?.eventId);
-
-    const { challengesVolume, userPlayChallenges } = EventChallengesData[0];
-
-    const totalEventVolume = challengesVolume?.reduce((prevVolume, challenge) => prevVolume + challenge.totalChallengeVolume, 0);
-
-    // calculated the fee
-    const organiserFee = totalEventVolume * (fees / 100);
-    const totalFees = (totalEventVolume * makaoPlatformFeePercentage) + organiserFee;
-
-    const userReviewChallenges = userPlayChallenges.map(userPlayChallenge => {
-      const playStatus = userPlayChallenge.challenge[0].playStatus;
-      const userAmount = userPlayChallenge?.amount;
-      const filteredchallenge = challengesVolume?.filter(challenge => challenge.challengeId.includes(userPlayChallenge._id.toString()))[0];
-      const challengesTotalVolume = filteredchallenge?.totalChallengeVolume;
-
-      const profitLoss = (Number((totalEventVolume - totalFees) / challengesTotalVolume) * Number(userAmount)) - Number(userAmount);
-      delete userPlayChallenge.challenge;
-      userPlayChallenge.playStatus = playStatus;
-      userPlayChallenge.potentialWin = profitLoss;
-      return userPlayChallenge;
-    });
-
-    return res.status(200).json({
-      message: 'Event Challenges fetched successfully',
-      data: userReviewChallenges,
     });
   } catch (ex: any) {
     console.error('Error : ', ex);

@@ -7,7 +7,6 @@ import {
 } from '@util/helper';
 import Event, { IEvent, IEventStatus } from './event.model';
 import Play from '../play/play.model';
-import Challenge from '../challenge/challenge.model';
 
 export async function createEvent(payload: IEvent) {
   return Event.create(payload);
@@ -414,65 +413,6 @@ export async function getEvent(_id: string, userId: string) {
     {
       $project: {
         comments: 0,
-      },
-    },
-  ]);
-}
-
-export async function getEventChallenges(eventId: string, userId: string) {
-  return Play.aggregate([
-    {
-      $facet: {
-        // eventFees: [
-        //   { $match: { event: new mongoose.Types.ObjectId(eventId) } },
-        //   {
-        //     $lookup: {
-        //       from: 'events',
-        //       localField: 'event',
-        //       foreignField: '_id',
-        //       as: 'eventFees',
-        //     },
-        //   },
-        // ],
-        // total challenges for calculating Event's Volume
-        challengesVolume: [
-          { $match: { event: new mongoose.Types.ObjectId(eventId) } },
-          {
-            $group: {
-              _id: '$challenge',
-              totalChallengeVolume: {
-                $sum: '$amount',
-              },
-              challengeId: {
-                $push: { $toString: '$_id' },
-              },
-            },
-          },
-        ],
-        userPlayChallenges: [
-          {
-            $match: {
-              event: new mongoose.Types.ObjectId(eventId),
-              playBy: new mongoose.Types.ObjectId(userId),
-            },
-          },
-          {
-            $lookup: {
-              from: 'challenges',
-              localField: 'challenge',
-              foreignField: '_id',
-              as: 'challenge',
-              pipeline: [
-                {
-                  $project: {
-                    playStatus: 1,
-                    status: 1,
-                  },
-                },
-              ],
-            },
-          },
-        ],
       },
     },
   ]);
