@@ -418,6 +418,55 @@ export async function getEvent(_id: string, userId: string) {
   ]);
 }
 
+export async function getEventChallenges(eventId: string, userId: string) {
+  return Play.aggregate([
+    {
+      $facet: {
+        // total challenges for calculating Event's Volume
+        challengesVolume: [
+          { $match: { event: new mongoose.Types.ObjectId(eventId) } },
+          {
+            $group: {
+              _id: '$challenge',
+              totalChallengeVolume: {
+                $sum: '$amount',
+              },
+              // playIds includes all play _id which includes in challenge id's group , and these play _ids must have all the players who betted this challenge (will include other players as well).
+              playIds: {
+                $push: { $toString: '$_id' },
+              },
+            },
+          },
+        ],
+        userPlayChallenges: [
+          {
+            $match: {
+              event: new mongoose.Types.ObjectId(eventId),
+              playBy: new mongoose.Types.ObjectId(userId),
+            },
+          },
+          {
+            $lookup: {
+              from: 'challenges',
+              localField: 'challenge',
+              foreignField: '_id',
+              as: 'challenges',
+              pipeline: [
+                {
+                  $project: {
+                    playStatus: 1,
+                    status: 1,
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  ]);
+}
+
 export async function findEventById(_id: string) {
   return Event.findById(_id);
 }
