@@ -4,16 +4,10 @@ export async function findReview(query: { reviewed?: Number, eventId?: string, u
   return Review.find(query);
 }
 
-export async function findIsReviewGiven(eventId: string, userId: string) {
-  return Review.findOne({ $and: [{ eventId }, { userReviewBy: userId }] });
+export async function findOneReview(query: { eventId: string, userReviewBy: string, challengeId: string }) {
+  return Review.findOne(query);
 }
 
-export async function postReview({ eventId, userId, userReview } : { [key: string]: string | boolean }) {
-  return Review.insertMany([
-    {
-      userReviewBy: userId,
-      eventId,
-      review: userReview ? 1 : 0,
-    },
-  ]);
+export async function postReview(payload: { [key: string]: string | boolean }) {
+  return Review.create(payload);
 }
