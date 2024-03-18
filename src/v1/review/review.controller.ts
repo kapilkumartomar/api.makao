@@ -71,12 +71,12 @@ export async function handlePostReview(req: Request, res: Response) {
     } = req.body;
 
     // Checking if review already exist for this user, challenge and event
-    // const existedReview = await findOneReview({ eventId, challengeId, userReviewBy });
-    // if (existedReview?._id) {
-    //   return res.status(500).json({
-    //     message: 'Review already existed for this challenge',
-    //   });
-    // }
+    const existedReview = await findOneReview({ eventId, challengeId, userReviewBy });
+    if (existedReview?._id) {
+      return res.status(500).json({
+        message: 'Review already existed for this challenge',
+      });
+    }
 
     // conditionally checking for image
     let imgName = '';
