@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
 /* eslint-disable no-console */
@@ -16,6 +17,9 @@ import {
 import mongoose, { AnyObject, Types } from 'mongoose';
 import {
   createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsEventComments, getFriendsPlayingEvents, updateEvent, getOrganisedEvents,
+  getEventChallenges,
+  findEventById,
+  getEventsChallenges,
 } from './event.resources';
 import { findChallenges, updateChallengeBulkwrite, updateChallenges } from '../challenge/challenge.resources';
 import { IEvent } from './event.model';
@@ -24,6 +28,7 @@ import { findCategories } from '../category/category.resources';
 import {
   deletePlays, findPlays, getChallengesVolume, getEventChallengesVolume,
 } from '../play/play.resources';
+import { get } from 'lodash';
 
 let dirname = __dirname;
 console.log('dirname', dirname);
@@ -366,6 +371,146 @@ export async function handleGetEvent(req: Request, res: Response) {
     return res.status(200).json({
       message: 'Event fetched successfully',
       data: singleEvent,
+    });
+  } catch (ex: any) {
+    console.error('Error : ', ex);
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetEventChallenges(req: Request, res: Response) {
+  const { params, body } = req;
+
+  try {
+    // getting event's fees.
+    const { fees } = await findEventById(params?.eventId);
+
+    // getting user's challenges and event's all challenges along with each challenge's total volume.
+    const EventChallengesData = await getEventChallenges(params?.eventId, body?.userInfo?._id);
+    const { challengesVolume, userPlayChallenges } = EventChallengesData[0];
+
+    // total volume of the event.
+    const totalEventVolume = challengesVolume?.reduce((prevVolume, challenge) => prevVolume + challenge.totalChallengeVolume, 0);
+
+    // calculating organiser's and makao's fee.
+    const organiserFee = totalEventVolume * (fees / 100);
+    const totalFees = (totalEventVolume * makaoPlatformFeePercentage) + organiserFee;
+
+    // manuplulating desired data
+    const userReviewChallenges = userPlayChallenges.map((userPlayChallenge) => {
+      // getting playStatus for each challenge
+      const playStatus = userPlayChallenge.challenges[0].playStatus;
+      const logic = userPlayChallenge.challenges[0].logic;
+      const title = userPlayChallenge.challenges[0].title;
+
+      // amount betted by user per play
+      const userAmount = userPlayChallenge?.amount;
+
+      // finding totalChallengeVolume of a challenge in which multiple players betted.
+      // eslint-disable-next-line arrow-body-style
+      const filteredchallenge = challengesVolume?.filter((challenge) => {
+        // checking if user's play is included in this challenge or not
+        return challenge.playIds.includes(userPlayChallenge._id.toString());
+      })[0];
+
+      // total challenge value only for those challegens which has been played by current user.
+      const challengesTotalVolume = filteredchallenge?.totalChallengeVolume;
+
+      // potential win(profit_loss)'s formula.
+      const profitLoss = (Number((totalEventVolume - totalFees) / challengesTotalVolume) * Number(userAmount)) - Number(userAmount);
+      delete userPlayChallenge.challenges; // deleting challenge array as no use on client side.
+
+      userPlayChallenge.playStatus = playStatus;
+      userPlayChallenge.potentialWin = profitLoss;
+      userPlayChallenge.potentialWin = profitLoss;
+      userPlayChallenge.logic = logic;
+      userPlayChallenge.title = title;
+
+      return userPlayChallenge;
+    });
+
+    return res.status(200).json({
+      message: 'Event Challenges for review fetched successfully',
+      data: userReviewChallenges,
+    });
+  } catch (ex: any) {
+    console.error('Error : ', ex);
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+export async function handleGetEventsChallenges(req: Request, res: Response) {
+  const { body } = req;
+
+  try {
+    // getting user's challenges and event's all challenges along with each challenge's total volume.
+    const EventsChallengesData = await getEventsChallenges(body?.userInfo?._id);
+    const { eventsVolumes, userPlayEventsChallenges } = EventsChallengesData[0];
+
+    // total volume of the event.
+    const totalEvents = userPlayEventsChallenges?.map((userEvent) => {
+      const currentEvent = eventsVolumes?.filter(event => event._id.toString() === userEvent._id.toString())[0];
+      const eventFees = get(currentEvent, 'eventFees[0]', NaN);
+      const eventName = get(currentEvent, 'eventName[0]', null);
+      const eventImg = get(currentEvent, 'eventImg[0]', null);
+      const eventDescription = get(currentEvent, 'eventDescription[0]', null);
+      const eventPrivacy = get(currentEvent, 'eventPrivacy[0]', null);
+      const eventStatus = get(currentEvent, 'eventStatus[0]', null);
+
+      const totalEventVolume = currentEvent.challengeData?.reduce((prevVolume: number, challenge) => prevVolume + challenge.playData?.reduce((acc: number, playdata) => acc + playdata.amount, 0), 0);
+
+      // calculating organiser's and makao's fee.
+      const organiserFee = totalEventVolume * (eventFees / 100);
+      const totalFees = (totalEventVolume * makaoPlatformFeePercentage) + organiserFee;
+      console.log('totalEventVolume',totalEventVolume,organiserFee,totalFees,eventFees,currentEvent._id)
+
+      // assigning total challenge amount in each challenge and making challenge's list with challengeTotalAmount.
+      const totalChallengesAmountList = currentEvent.challengeData?.map(perChallenge => ({
+        _id: perChallenge._id,
+        challengeTotalAmount: perChallenge.playData.reduce((acc: number, playdata) => acc + playdata.amount, 0),
+      }));
+
+      //   delete userPlayChallenge.challenges; // deleting challenge array as no use on client side.
+      userEvent.userChallengeData = userEvent.userChallengeData?.map(userChallenge => {
+        // this filter for total challenge amount of all players.
+        const totalAmountsChallenge = totalChallengesAmountList?.filter(perChallenge => perChallenge._id.toString() === userChallenge._id.toString())[0];
+        const playChallengesTotalVolume = totalAmountsChallenge.challengeTotalAmount;
+
+        // this filter for assigning playStatus of challenge in userChallenge.
+        const sameChallenge = userEvent.challenges?.filter(challenge => challenge._id.toString() === userChallenge._id.toString())[0];
+        console.log('same matched challenge',sameChallenge);
+
+        let profitLoss;
+        if (userChallenge.playData.length > 0) {
+          const userAmount = userChallenge.playData[0].amount;
+
+          profitLoss = (Number((totalEventVolume - totalFees) / playChallengesTotalVolume) * Number(userAmount)) - Number(userAmount);
+          userChallenge.potentialWin = profitLoss;
+          userChallenge.title = get(sameChallenge, 'title', null);
+          userChallenge.logic = get(sameChallenge, 'logic', null);
+
+          userChallenge.playData[0].status = sameChallenge?.status;
+          userChallenge.playData[0].playStatus = sameChallenge?.playStatus;
+        }
+        return userChallenge;
+      });
+      //   userPlayChallenge.playStatus = playStatus;
+      //   userPlayChallenge.potentialWin = profitLoss;
+      userEvent.eventName = eventName;
+      userEvent.eventImg = `${process.env.API_URL}images/${eventImg}`;
+      userEvent.eventDescription = eventDescription;
+      userEvent.eventPrivacy = eventPrivacy;
+      userEvent.eventStatus = eventStatus;
+      delete userEvent.challenges;
+      return userEvent;
+    });
+
+    return res.status(200).json({
+      message: 'All Events Challenges for review fetched successfully',
+      data: totalEvents,
     });
   } catch (ex: any) {
     console.error('Error : ', ex);

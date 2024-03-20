@@ -21,6 +21,8 @@ import {
   handleGetFriendsComments,
   handleGetUserOrganisedEvents,
   handleUpdateEventFormData,
+  handleGetEventChallenges,
+  handleGetEventsChallenges,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
 
@@ -65,6 +67,8 @@ routes.get(
   handleSearchEventsUsersCategories,
 );
 
+routes.get('/reviewEventsChallenges/', web3Auth, handleGetEventsChallenges);
+
 routes.get('/:_id', web3Auth, handleGetEvent);
 
 routes.patch('/:_id', web3Auth, validate(validateUpdateEvent), handleUpdateEvent);
@@ -82,5 +86,6 @@ routes.post('/:_id/claims', web3Auth, handlePlayerClaims);
 routes.post('/:_id/decision/win', web3Auth, handleEventDecisionWin);
 routes.post('/:_id/decision/refund', web3Auth, handleEventDecisionRefund);
 routes.post('/:_id/user/:userId/refund', web3Auth, handleUserRefundAndKick);
+routes.get('/reviewEventChallenges/:eventId', web3Auth, handleGetEventChallenges);
 
 module.exports = routes;

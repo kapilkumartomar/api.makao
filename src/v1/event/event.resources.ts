@@ -25,7 +25,7 @@ export async function getEventComments(eventId: string, query: any) {
   const pageSize = parseInt(query?.pageSize) || 20; // Default to 20 comments per page
   return Event.aggregate([
     { $match: { _id: new mongoose.Types.ObjectId(eventId) } },
-    // "unwind" or deconstruct an array field, creating a separate document for each element in the array
+    // 'unwind' or deconstruct an array field, creating a separate document for each element in the array
     { $unwind: '$comments' },
     { $sort: { 'comment.createdAt': -1 } },
     { $skip: (page - 1) * pageSize },
@@ -64,7 +64,7 @@ export async function getFriendsEventComments(eventId: string, query: any, frien
   const pageSize = parseInt(query?.pageSize) || 20; // Default to 20 comments per page
   return Event.aggregate([
     { $match: { _id: new mongoose.Types.ObjectId(eventId) } },
-    // "unwind" or deconstruct an array field, creating a separate document for each element in the array
+    // 'unwind' or deconstruct an array field, creating a separate document for each element in the array
     { $unwind: '$comments' },
     { $sort: { 'comment.createdAt': -1 } },
     { $skip: (page - 1) * pageSize },
@@ -232,7 +232,7 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
             },
           },
         ],
-        as: 'plays', // because when we are grouping by $challenges, and looking up for it, it's strucutre like challenge
+        as: 'plays', // because when we are grouping by $challenges, and looking up for it, it's structure like challenge
       },
     },
     {
@@ -260,6 +260,11 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
     {
       $addFields: {
         averageReview: '$eventReview.averageReview',
+      },
+    },
+    {
+      $project: {
+        eventReview: 0,
       },
     },
   ]);
@@ -390,11 +395,6 @@ export async function getEvent(_id: string, userId: string) {
         as: 'eventReview',
         pipeline: [
           {
-            $match: {
-              eventId: new mongoose.Types.ObjectId(_id),
-            },
-          },
-          {
             $group: {
               _id: null,
               totalReview: { $sum: 1 },
@@ -413,13 +413,214 @@ export async function getEvent(_id: string, userId: string) {
     {
       $project: {
         comments: 0,
+        eventReview: 0,
       },
     },
   ]);
 }
 
-export async function findEventById(_id: string) {
-  return Event.findById(_id);
+export async function getEventChallenges(eventId: string, userId: string) {
+  return Play.aggregate([
+    {
+      $facet: {
+        // total challenges for calculating Event's Volume
+        challengesVolume: [
+          { $match: { event: new mongoose.Types.ObjectId(eventId) } },
+          {
+            $group: {
+              _id: '$challenge',
+              totalChallengeVolume: {
+                $sum: '$amount',
+              },
+              // playIds includes all play _id which includes in challenge id's group , and these play _ids must have all the players who betted this challenge (will include other players as well).
+              playIds: {
+                $push: { $toString: '$_id' },
+              },
+            },
+          },
+        ],
+        userPlayChallenges: [
+          {
+            $match: {
+              event: new mongoose.Types.ObjectId(eventId),
+              playBy: new mongoose.Types.ObjectId(userId),
+            },
+          },
+          {
+            $lookup: {
+              from: 'challenges',
+              localField: 'challenge',
+              foreignField: '_id',
+              as: 'challenges',
+              pipeline: [
+                {
+                  $project: {
+                    playStatus: 1,
+                    status: 1,
+                    logic: 1,
+                    title: 1,
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  ]);
+}
+
+export async function getEventsChallenges(userId: string) {
+  return Play.aggregate([
+    {
+      $facet: {
+        // total challenges for calculating Event's Volume
+        eventsVolumes: [
+          {
+            $match: {
+              playBy: new mongoose.Types.ObjectId(userId),
+            },
+          },
+          {
+            $group: {
+              _id: '$event',
+              eventData: {
+                $push: '$$ROOT',
+              },
+            },
+          },
+          {
+            $unwind: '$eventData',
+          },
+          {
+            $group: {
+              _id: {
+                eventId: '$_id',
+                challengeId: '$eventData.challenge',
+              },
+              groupedChallengeData: {
+                $push: '$eventData',
+              },
+            },
+          },
+          {
+            $group: {
+              _id: '$_id.eventId',
+              challengeData: {
+                $push: {
+                  _id: '$_id.challengeId',
+                  playData: '$groupedChallengeData',
+                },
+              },
+            },
+          },
+          {
+            // applying events collection lookup so that we can get event's fees.
+            $lookup: {
+              from: 'events',
+              localField: '_id',
+              foreignField: '_id',
+              as: 'event',
+              pipeline: [
+                {
+                  $project: {
+                    fees: 1,
+                    status: 1,
+                    img: 1,
+                    name: 1,
+                    description: 1,
+                    privacy: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $project: {
+              challengeData: 1,
+              eventFees: '$event.fees',
+              eventImg: '$event.img',
+              eventName: '$event.name',
+              eventDescription: '$event.description',
+              eventPrivacy: '$event.privacy',
+              eventStatus: '$event.status',
+            },
+          },
+        ],
+        userPlayEventsChallenges: [
+          {
+            $match: {
+              playBy: new mongoose.Types.ObjectId(userId),
+            },
+          },
+          {
+            $group: {
+              _id: '$event',
+              doc: { $push: '$$ROOT' },
+              // added count for get to know that how many docs are in one event.
+              count: {
+                $sum: 1,
+              },
+            },
+          },
+          {
+            // unwind the array of doc if grouped event has multiple docs
+            $unwind: '$doc',
+          },
+          {
+            $group: {
+              _id: {
+                eventId: '$_id',
+                challengeId: '$doc.challenge',
+              },
+              groupedChallengeData: {
+                $push: '$doc',
+              },
+            },
+          },
+          {
+            $group: {
+              _id: '$_id.eventId',
+              userChallengeData: {
+                $push: {
+                  _id: '$_id.challengeId',
+                  playData: '$groupedChallengeData',
+                },
+              },
+            },
+          },
+          {
+            $lookup: {
+              from: 'challenges',
+              localField: 'userChallengeData._id',
+              foreignField: '_id',
+              as: 'challenges',
+              pipeline: [
+                {
+                  $project: {
+                    playStatus: 1,
+                    status: 1,
+                    logic: 1,
+                    title: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $project: {
+              userChallengeData: 1,
+              challenges: 1,
+            },
+          },
+        ],
+      },
+    },
+  ]);
+}
+
+export async function findEventById(_id: string, projection: string) {
+  return Event.findById(_id, projection ?? '');
 }
 
 export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery: IDBQuery) {
@@ -478,7 +679,7 @@ export async function findEventPlayers(eventId: string, basicQuery: any) {
 
   return Play.aggregate([
     { $match: { event: new mongoose.Types.ObjectId(eventId) } },
-    // "unwind" or deconstruct an array field, creating a separate document for each element in the array
+    // 'unwind' or deconstruct an array field, creating a separate document for each element in the array
     // getting related users
     ...aggregateQuery,
     {

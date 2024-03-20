@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import { web3Auth } from '@config/web3Auth';
 
 import {
@@ -8,9 +9,10 @@ import {
 } from './review.controller';
 
 const routes = express.Router();
+const upload = multer();
 
 routes.get('/', web3Auth, handleGetReview);
-routes.get('/:eventId', web3Auth, handleIsReviewGiven);
-routes.post('/', web3Auth, handlePostReview);
+routes.post('/', upload.fields([{ name: 'img', maxCount: 1 }]), web3Auth, handlePostReview);
+routes.get('/:eventId/:challengeId', web3Auth, handleIsReviewGiven);
 
 module.exports = routes;
