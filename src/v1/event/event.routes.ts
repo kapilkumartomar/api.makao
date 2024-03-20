@@ -22,7 +22,6 @@ import {
   handleGetUserOrganisedEvents,
   handleUpdateEventFormData,
   handleGetEventChallenges,
-  handleGetEventsChallenges,
 } from './event.controller';
 import { validateCreateComment, validateCreateEvent, validateUpdateEvent } from './event.validation';
 
@@ -66,8 +65,6 @@ routes.get(
   web3Auth,
   handleSearchEventsUsersCategories,
 );
-
-routes.get('/reviewEventsChallenges/', handleGetEventsChallenges);
 
 routes.get('/:_id', web3Auth, handleGetEvent);
 
