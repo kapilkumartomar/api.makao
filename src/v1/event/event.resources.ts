@@ -262,6 +262,11 @@ export async function getEventsAndPlays(query: IDBQuery, basicQuery: IDBQuery, u
         averageReview: '$eventReview.averageReview',
       },
     },
+    {
+      $project: {
+        eventReview: 0,
+      },
+    },
   ]);
 }
 
@@ -390,11 +395,6 @@ export async function getEvent(_id: string, userId: string) {
         as: 'eventReview',
         pipeline: [
           {
-            $match: {
-              eventId: new mongoose.Types.ObjectId(_id),
-            },
-          },
-          {
             $group: {
               _id: null,
               totalReview: { $sum: 1 },
@@ -413,6 +413,7 @@ export async function getEvent(_id: string, userId: string) {
     {
       $project: {
         comments: 0,
+        eventReview: 0,
       },
     },
   ]);
@@ -616,8 +617,8 @@ export async function getEventsChallenges(userId: string) {
   ]);
 }
 
-export async function findEventById(_id: string) {
-  return Event.findById(_id);
+export async function findEventById(_id: string, projection: string) {
+  return Event.findById(_id, projection ?? '');
 }
 
 export async function getFriendsPlayingEvents(friendsIds: ObjectId[], basicQuery: IDBQuery) {

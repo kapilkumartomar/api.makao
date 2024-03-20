@@ -7,12 +7,13 @@ import fs from 'fs/promises';
 
 import { wentWrong } from '@util/helper';
 import mongoose, { AnyObject } from 'mongoose';
-import User from '@user/user.model';
 import { get } from 'lodash';
-import { findOneReview, findReview, postReview } from './review.resources';
-import { findUserClaims } from '../user/user.resources';
+import {
+  eventReviewAverage, findOneReview, findReview, postReview,
+} from './review.resources';
+import { findOneAndUpdateUser, findUser, findUserClaims } from '../user/user.resources';
 import { findChallenges } from '../challenge/challenge.resources';
-import Event from '../event/event.model';
+import { findEventById } from '../event/event.resources';
 
 let dirname = __dirname;
 console.log('dirname', dirname);
@@ -37,16 +38,16 @@ export async function handleGetReview(req: Request, res: Response) {
 export async function handleIsReviewGiven(req: Request, res: Response) {
   try {
     const { eventId, challengeId } = req.params;
-    const { _id: userId } = req.body.userInfo;
+    const { _id: userReviewBy } = req.body.userInfo;
 
-    const reviewPromise: any = findOneReview({ eventId, userId, challengeId });
+    const reviewPromise: any = findOneReview({ eventId, userReviewBy, challengeId });
     const challengesPromise: any = findChallenges({ event: eventId });
 
     let unclaimedAmount: any = {};
     const [review, challenges]: any = await Promise.all([reviewPromise, challengesPromise]);
     if (review) {
       const challengeIds = challenges?.map((val: AnyObject) => val?._id);
-      unclaimedAmount = await findUserClaims(userId, challengeIds, false);
+      unclaimedAmount = await findUserClaims(userReviewBy, challengeIds, false);
     }
 
     return res.status(200).json({
@@ -61,6 +62,8 @@ export async function handleIsReviewGiven(req: Request, res: Response) {
 }
 
 export async function handlePostReview(req: Request, res: Response) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { files } = req as any;
     const {
@@ -97,69 +100,38 @@ export async function handlePostReview(req: Request, res: Response) {
     if (feedback) payload.feedback = feedback;
 
     const reviewsPromise: any = postReview(payload);
-    const challengesPromise: any = findChallenges({ event: req.body.eventId });
+    const challengesPromise: any = findChallenges({ event: eventId });
+    const eventPromise: any = findEventById(eventId, 'createdBy');
+    const [givenReview, challenges, eventDetails] = await Promise.all([reviewsPromise, challengesPromise, eventPromise]);
 
-    const [givenReview, challenges] = await Promise.all([reviewsPromise, challengesPromise]);
+    // increasing organizer's trust-note --> average of all of his events.
+    const eventOwnerId = eventDetails?.createdBy;
 
-    {
-      // below written code is for increasing organiser's trust-note --> average of all of his events.
+    const updatedAverageReviewPromise = eventReviewAverage({ eventId });
+    const organizerDetailsPromise = findUser({ _id: eventOwnerId }, { userTrustNote: 1 });
 
-      const { createdBy: eventOwnerId } = await Event.findById(req.body.eventId)!;
-      const updatedAverageReview = await Event.aggregate([
-        {
-          $match: {
-            _id: new mongoose.Types.ObjectId(req.body.eventId),
-          },
+    const [updatedReviewAverage, organizerDetails] = await Promise.all([updatedAverageReviewPromise, organizerDetailsPromise]);
+
+    const previousAverageReview = get(updatedReviewAverage, '[0].averageEventReview', 0.5) * 5; // to put rating on 5's scale
+    const currentUserTrustNote = get(organizerDetails, 'userTrustNote', 2.5);
+
+    const finalUserTrustNote = (currentUserTrustNote + previousAverageReview) / 2; // recalculate User's average TrustNote.
+
+    const organizerNewTrustNote = await findOneAndUpdateUser(
+      eventOwnerId,
+      {
+        $set: {
+          userTrustNote: finalUserTrustNote,
         },
-        {
-          $lookup: {
-            from: 'reviews',
-            localField: '_id',
-            foreignField: 'eventId',
-            as: 'eventTrustAverage',
-            pipeline: [
-              {
-                $group: {
-                  _id: null,
-                  totalReviewedEvents: { $sum: 1 },
-                  averageEventReview: { $avg: '$review' },
-                },
-              },
-            ],
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            eventId: '$_id',
-            averageEventReview: '$eventTrustAverage.averageEventReview',
-            eventTrustAverage: '$eventTrustAverage',
-          },
-        },
-      ]);
+      },
+      {
+        userTrustNote: 1,
+      },
+    );
 
-      const previousAverageReview = get(updatedAverageReview, '[0].averageEventReview[0]', '') * 5; // to put rating on 5's scale
+    console.log('data', givenReview, eventDetails, updatedReviewAverage, previousAverageReview, currentUserTrustNote, finalUserTrustNote);
 
-      const { userTrustNote: currentUserTrustNote } = await User.findOne(eventOwnerId);
-
-      const finalUserTrustNote = (currentUserTrustNote + previousAverageReview) / 2; // recalculate User's average TrustNote.
-
-      const organiserNewTrustNote = await User.findOneAndUpdate(
-        {
-          _id: eventOwnerId,
-        },
-        {
-          $set: {
-            userTrustNote: finalUserTrustNote,
-          },
-        },
-        {
-          returnDocument: 'after',
-        },
-      );
-
-      console.log(`Organiser's userTrustNote is increased by \x1b[1;31m${previousAverageReview}\x1b[0m in average, new userTrustNote is \x1b[1;31m${organiserNewTrustNote!.userTrustNote}\x1b[0m`);
-    }
+    console.log(`organizer's userTrustNote is increased by \x1b[1;31m${previousAverageReview}\x1b[0m in average, new userTrustNote is \x1b[1;31m${organizerNewTrustNote!.userTrustNote}\x1b[0m`);
 
     let unclaimedAmount: any = {};
 
@@ -169,11 +141,16 @@ export async function handlePostReview(req: Request, res: Response) {
       unclaimedAmount = await findUserClaims(userReviewBy, challengeIds, false);
     }
 
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+
     return res.status(200).json({
       message: 'Reviews Posted successfully',
       data: { review: givenReview, unclaimedAmount },
     });
   } catch (err: any) {
+    await session.abortTransaction();
+
     return res.status(500).json({
       message: err?.message ?? wentWrong,
     });
