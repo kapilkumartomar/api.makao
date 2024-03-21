@@ -619,7 +619,7 @@ export async function getEventsChallenges(userId: string) {
   ]);
 }
 
-export async function findEventById(_id: string, projection: string) {
+export async function findEventById(_id: string, projection?: string) {
   return Event.findById(_id, projection ?? '');
 }
 

@@ -47,7 +47,7 @@ export async function handleIsReviewGiven(req: Request, res: Response) {
     const [review, challenges]: any = await Promise.all([reviewPromise, challengesPromise]);
     if (review) {
       const challengeIds = challenges?.map((val: AnyObject) => val?._id);
-      unclaimedAmount = await findUserClaims(userReviewBy, challengeIds, false);
+      unclaimedAmount = await findUserClaims({ userId: userReviewBy, challengeIds, claimStatus: false });
     }
 
     return res.status(200).json({
@@ -138,7 +138,7 @@ export async function handlePostReview(req: Request, res: Response) {
     if (givenReview) {
       // Checking for the claims
       const challengeIds = challenges?.map((val: AnyObject) => val?._id);
-      unclaimedAmount = await findUserClaims(userReviewBy, challengeIds, false);
+      unclaimedAmount = await findUserClaims({ userId: userReviewBy, challengeIds, claimStatus: false });
     }
 
     // If everything is successful, commit the transaction

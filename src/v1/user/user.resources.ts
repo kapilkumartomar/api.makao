@@ -243,7 +243,9 @@ export async function IsBlacklistedInUserEvent(userId: string, eventId: string) 
   return isBlacklisted;
 }
 
-export async function findUserClaims(userId: string, challengesIds?: string[], claimStatus?: boolean) {
+export async function findUserClaims({
+  userId, challengeIds, claimStatus, challengeLookup,
+}: { userId: string, challengeIds?: string[], claimStatus?: boolean, challengeLookup?: boolean }) {
   mongoose.set('debug', true);
 
   const aggregateQuery: any = [
@@ -268,6 +270,24 @@ export async function findUserClaims(userId: string, challengesIds?: string[], c
     },
   ];
 
+  if (Array.isArray(challengeIds) && challengeIds[0]) {
+    aggregateQuery.push(
+      {
+        $project: {
+          _id: 1,
+          balance: 1,
+          claims: {
+            $filter: {
+              input: '$claims',
+              as: 'claims',
+              cond: { $in: ['$$claims.challenge', challengeIds] },
+            },
+          },
+        },
+      },
+    );
+  }
+
   const limitAndSort = [{
     $project: {
       balance: 1,
@@ -286,44 +306,57 @@ export async function findUserClaims(userId: string, challengesIds?: string[], c
       },
     },
   },
-    // {
-    //   $lookup: {
-    //     from: 'challenges',
-    //     localField: 'claims.challenge',
-    //     foreignField: '_id',
-    //     as: 'challenge',
-    //     pipeline: [
-    //       {
-    //         $project: {
-    //           _id: 1,
-    //           logic: 1,
-    //           title: 1,
-    //         },
-    //       },
-    //     ],
-    //   }
-    // }
   ];
 
-  if (Array.isArray(challengesIds) && challengesIds[0]) {
-    aggregateQuery.push(
-      {
-        $project: {
-          _id: 1,
-          balance: 1,
-          claims: {
-            $filter: {
-              input: '$claims',
-              as: 'claims',
-              cond: { $in: ['$$claims.challenge', challengesIds] },
+  aggregateQuery.concat(limitAndSort);
+
+  // IF lookup need on challenge
+  if (challengeLookup) {
+    aggregateQuery.push({
+      $project: {
+        _id: 0,
+        claims: 1,
+      },
+    });
+    aggregateQuery.push({ $unwind: '$claims' });
+
+    aggregateQuery.push({
+      $replaceWith: '$claims',
+    });
+    aggregateQuery.push({
+      $lookup: {
+        from: 'challenges',
+        localField: 'challenge',
+        foreignField: '_id',
+        as: 'challenge',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              logic: 1,
+              title: 1,
             },
           },
-        },
+          {
+            $lookup: {
+              from: 'plays',
+              localField: '_id',
+              foreignField: 'challenge',
+              as: 'userPlay',
+              pipeline: [
+                {
+                  $group: {
+                    _id: null,
+                    total: { $sum: '$amount' },
+                  },
+                },
+              ],
+            },
+          },
+        ],
       },
-    );
+    });
   }
-
-  aggregateQuery.concat(limitAndSort);
 
   return User.aggregate(aggregateQuery);
 }

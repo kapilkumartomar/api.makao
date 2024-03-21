@@ -15,6 +15,7 @@ import {
   findUserById, findUserClaims, findUserFriends, findUserFriendsDetails, findUsers, updateUser, updateUsersBulkwrite,
 } from '@user/user.resources';
 import mongoose, { AnyObject, Types } from 'mongoose';
+import { get } from 'lodash';
 import {
   createEvent, createEventComments, findEventPlayers, getEvent, getEventComments, getEvents, getEventsAndPlays, getFriendsEventComments, getFriendsPlayingEvents, updateEvent, getOrganisedEvents,
   getEventChallenges,
@@ -28,7 +29,6 @@ import { findCategories } from '../category/category.resources';
 import {
   deletePlays, findPlays, getChallengesVolume, getEventChallengesVolume,
 } from '../play/play.resources';
-import { get } from 'lodash';
 
 let dirname = __dirname;
 console.log('dirname', dirname);
@@ -452,7 +452,7 @@ export async function handleGetEventsChallenges(req: Request, res: Response) {
 
     // total volume of the event.
     const totalEvents = userPlayEventsChallenges?.map((userEvent) => {
-      const currentEvent = eventsVolumes?.filter(event => event._id.toString() === userEvent._id.toString())[0];
+      const currentEvent = eventsVolumes?.filter((event) => event._id.toString() === userEvent._id.toString())[0];
       const eventFees = get(currentEvent, 'eventFees[0]', NaN);
       const eventName = get(currentEvent, 'eventName[0]', null);
       const eventImg = get(currentEvent, 'eventImg[0]', null);
@@ -465,23 +465,23 @@ export async function handleGetEventsChallenges(req: Request, res: Response) {
       // calculating organiser's and makao's fee.
       const organiserFee = totalEventVolume * (eventFees / 100);
       const totalFees = (totalEventVolume * makaoPlatformFeePercentage) + organiserFee;
-      console.log('totalEventVolume',totalEventVolume,organiserFee,totalFees,eventFees,currentEvent._id)
+      console.log('totalEventVolume', totalEventVolume, organiserFee, totalFees, eventFees, currentEvent._id);
 
       // assigning total challenge amount in each challenge and making challenge's list with challengeTotalAmount.
-      const totalChallengesAmountList = currentEvent.challengeData?.map(perChallenge => ({
+      const totalChallengesAmountList = currentEvent.challengeData?.map((perChallenge) => ({
         _id: perChallenge._id,
         challengeTotalAmount: perChallenge.playData.reduce((acc: number, playdata) => acc + playdata.amount, 0),
       }));
 
       //   delete userPlayChallenge.challenges; // deleting challenge array as no use on client side.
-      userEvent.userChallengeData = userEvent.userChallengeData?.map(userChallenge => {
+      userEvent.userChallengeData = userEvent.userChallengeData?.map((userChallenge) => {
         // this filter for total challenge amount of all players.
-        const totalAmountsChallenge = totalChallengesAmountList?.filter(perChallenge => perChallenge._id.toString() === userChallenge._id.toString())[0];
+        const totalAmountsChallenge = totalChallengesAmountList?.filter((perChallenge) => perChallenge._id.toString() === userChallenge._id.toString())[0];
         const playChallengesTotalVolume = totalAmountsChallenge.challengeTotalAmount;
 
         // this filter for assigning playStatus of challenge in userChallenge.
-        const sameChallenge = userEvent.challenges?.filter(challenge => challenge._id.toString() === userChallenge._id.toString())[0];
-        console.log('same matched challenge',sameChallenge);
+        const sameChallenge = userEvent.challenges?.filter((challenge) => challenge._id.toString() === userChallenge._id.toString())[0];
+        console.log('same matched challenge', sameChallenge);
 
         let profitLoss;
         if (userChallenge.playData.length > 0) {
@@ -887,15 +887,24 @@ export async function handleUserRefundAndKick(req: Request, res: Response) {
 
 export async function handlePlayerClaims(req: Request, res: Response) {
   try {
-    const { body: { challengeIds, userInfo } } = req;
+    const { body: { userInfo, eventId } } = req;
 
-    const unclaimedAmount = await findUserClaims(userInfo?._id, challengeIds?.map((_id: string) => new mongoose.Types.ObjectId(_id)), false);
+    let eventChallenges: any = [];
+    if (eventId) {
+      eventChallenges = await findChallenges(
+        { event: eventId },
+        { _id: 1 },
+      );
+    }
+
+    const unclaimedAmount = await findUserClaims({
+      userId: userInfo?._id, challengeIds: eventChallenges?.map((_id: mongoose.Types.ObjectId) => _id), claimStatus: false,
+    });
 
     if (Array.isArray(unclaimedAmount) && unclaimedAmount.length && Array.isArray(unclaimedAmount[0].claims) && unclaimedAmount[0].claims) {
       const claimsIds = unclaimedAmount[0].claims.map((val: AnyObject) => val?._id);
       const updatingBalance = unclaimedAmount[0].claims.filter((claim: AnyObject) => claim?.amount > 0).reduce((accumulator: number, claim: AnyObject) => accumulator + Number(claim?.amount ?? 0), 0);
 
-      console.log('claims Ids', claimsIds);
       const updatedClaims = await updateUser(
         { _id: userInfo?._id },
         {
@@ -913,7 +922,36 @@ export async function handlePlayerClaims(req: Request, res: Response) {
     }
 
     return res.status(400).json({
-      message: 'No profit lefts to claims ',
+      message: 'No profit lefts to claim',
+    });
+  } catch (ex: any) {
+    return res.status(500).json({
+      message: ex?.message ?? wentWrong,
+    });
+  }
+}
+
+export async function handleGetPlayerClaims(req: Request, res: Response) {
+  try {
+    const { body: { userInfo }, params: { eventId } } = req;
+    let eventChallenges: any = [];
+    if (eventId) {
+      eventChallenges = await findChallenges(
+        { event: eventId },
+        { _id: 1 },
+      );
+    }
+
+    const unclaimed = await findUserClaims({
+      userId: userInfo?._id,
+      challengeIds: eventChallenges?.map((_id: mongoose.Types.ObjectId) => _id),
+      claimStatus: false,
+      challengeLookup: true,
+    });
+
+    return res.status(200).json({
+      message: 'User claims fetched successfully',
+      data: unclaimed,
     });
   } catch (ex: any) {
     return res.status(500).json({
