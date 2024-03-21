@@ -402,6 +402,8 @@ export async function handleGetEventChallenges(req: Request, res: Response) {
     const userReviewChallenges = userPlayChallenges.map((userPlayChallenge) => {
       // getting playStatus for each challenge
       const playStatus = userPlayChallenge.challenges[0].playStatus;
+      const logic = userPlayChallenge.challenges[0].logic;
+      const title = userPlayChallenge.challenges[0].title;
 
       // amount betted by user per play
       const userAmount = userPlayChallenge?.amount;
@@ -410,7 +412,7 @@ export async function handleGetEventChallenges(req: Request, res: Response) {
       // eslint-disable-next-line arrow-body-style
       const filteredchallenge = challengesVolume?.filter((challenge) => {
         // checking if user's play is included in this challenge or not
-        return challenge.challengeId.includes(userPlayChallenge._id.toString());
+        return challenge.playIds.includes(userPlayChallenge._id.toString());
       })[0];
 
       // total challenge value only for those challegens which has been played by current user.
@@ -422,6 +424,9 @@ export async function handleGetEventChallenges(req: Request, res: Response) {
 
       userPlayChallenge.playStatus = playStatus;
       userPlayChallenge.potentialWin = profitLoss;
+      userPlayChallenge.potentialWin = profitLoss;
+      userPlayChallenge.logic = logic;
+      userPlayChallenge.title = title;
 
       return userPlayChallenge;
     });

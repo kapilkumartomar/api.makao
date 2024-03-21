@@ -457,6 +457,8 @@ export async function getEventChallenges(eventId: string, userId: string) {
                   $project: {
                     playStatus: 1,
                     status: 1,
+                    logic: 1,
+                    title: 1,
                   },
                 },
               ],
