@@ -367,9 +367,9 @@ export async function handleGetIsBlacklisted(req: Request, res: Response) {
 export async function handleGetWallet(req: Request, res: Response) {
   try {
     const { body } = req;
-    const user: any = await findUserClaims(
-      body?.userInfo?._id,
-    );
+    const user: any = await findUserClaims({
+      userId: body?.userInfo?._id,
+    });
 
     const plays = await findPlaysWithDetails(
       { playBy: body?.userInfo?._id },
