@@ -68,7 +68,7 @@ routes.get(
   handleSearchEventsUsersCategories,
 );
 
-routes.get('/reviewEventsChallenges/', web3Auth, handleGetEventsChallenges);
+routes.get('/reviewEventsChallenges', web3Auth, handleGetEventsChallenges);
 
 routes.post('/claims', web3Auth, handlePlayerClaims);
 routes.get('/claims/:eventId', web3Auth, handleGetPlayerClaims);

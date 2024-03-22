@@ -1,3 +1,5 @@
+/* eslint-disable no-plusplus */
+/* eslint-disable no-nested-ternary */
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
@@ -29,6 +31,7 @@ import { findCategories } from '../category/category.resources';
 import {
   deletePlays, findPlays, getChallengesVolume, getEventChallengesVolume,
 } from '../play/play.resources';
+import { anyObject } from 'src/types/general.types';
 
 let dirname = __dirname;
 console.log('dirname', dirname);
@@ -410,7 +413,7 @@ export async function handleGetEventChallenges(req: Request, res: Response) {
 
       // finding totalChallengeVolume of a challenge in which multiple players betted.
       // eslint-disable-next-line arrow-body-style
-      const filteredchallenge = challengesVolume?.filter((challenge) => {
+      const filteredchallenge = challengesVolume?.filter((challenge: anyObject) => {
         // checking if user's play is included in this challenge or not
         return challenge.playIds.includes(userPlayChallenge._id.toString());
       })[0];
@@ -451,7 +454,7 @@ export async function handleGetEventsChallenges(req: Request, res: Response) {
     const { eventsVolumes, userPlayEventsChallenges } = EventsChallengesData[0];
 
     // total volume of the event.
-    const totalEvents = userPlayEventsChallenges?.map((userEvent) => {
+    const totalEvents = userPlayEventsChallenges?.map((userEvent: anyObject) => {
       const currentEvent = eventsVolumes?.filter((event) => event._id.toString() === userEvent._id.toString())[0];
       const eventFees = get(currentEvent, 'eventFees[0]', NaN);
       const eventName = get(currentEvent, 'eventName[0]', null);
@@ -460,7 +463,7 @@ export async function handleGetEventsChallenges(req: Request, res: Response) {
       const eventPrivacy = get(currentEvent, 'eventPrivacy[0]', null);
       const eventStatus = get(currentEvent, 'eventStatus[0]', null);
 
-      const totalEventVolume = currentEvent.challengeData?.reduce((prevVolume: number, challenge) => prevVolume + challenge.playData?.reduce((acc: number, playdata) => acc + playdata.amount, 0), 0);
+      const totalEventVolume = currentEvent.challengeData?.reduce((prevVolume: number, challenge: anyObject) => prevVolume + challenge.playData?.reduce((acc: number, playdata) => acc + playdata.amount, 0), 0);
 
       // calculating organiser's and makao's fee.
       const organiserFee = totalEventVolume * (eventFees / 100);
@@ -491,20 +494,41 @@ export async function handleGetEventsChallenges(req: Request, res: Response) {
           userChallenge.potentialWin = profitLoss;
           userChallenge.title = get(sameChallenge, 'title', null);
           userChallenge.logic = get(sameChallenge, 'logic', null);
+          userChallenge.playStatus = get(sameChallenge, 'playStatus', null);
+          userChallenge.status = get(sameChallenge, 'status', null);
+          userChallenge.amount = get(userChallenge, 'playData[0].amount', null);
 
-          userChallenge.playData[0].status = sameChallenge?.status;
-          userChallenge.playData[0].playStatus = sameChallenge?.playStatus;
+          // userChallenge.playData[0].status = sameChallenge?.status;
+          // userChallenge.playData[0].playStatus = sameChallenge?.playStatus;
         }
         return userChallenge;
       });
       //   userPlayChallenge.playStatus = playStatus;
       //   userPlayChallenge.potentialWin = profitLoss;
+      userEvent.eventId = userEvent._id;
       userEvent.eventName = eventName;
       userEvent.eventImg = `${process.env.API_URL}images/${eventImg}`;
       userEvent.eventDescription = eventDescription;
       userEvent.eventPrivacy = eventPrivacy;
       userEvent.eventStatus = eventStatus;
+      userEvent.totalEventAmount = userEvent.userChallengeData.reduce((acc: number, userChallenge: Record<string, number>) => acc + userChallenge.amount, 0);
+      userEvent.totalEventPotentialWin = userEvent.userChallengeData.reduce((acc: number, userChallenge: Record<string, number>) => acc + userChallenge.potentialWin, 0);
+
+      const WinOrLoss = userEvent.userChallengeData.reduce(
+        (acc, userChallenge) => (
+          userChallenge.playStatus === 'LOSS'
+            ? { ...acc, LOSS: ++acc.LOSS }
+            : userChallenge.playStatus === 'WIN'
+              ? { ...acc, WIN: ++acc.WIN }
+              : acc
+        ),
+        { LOSS: 0, WIN: 0 },
+      );
+
+      userEvent.eventAverageStatus = WinOrLoss.LOSS > WinOrLoss.WIN ? 'LOSS' : 'WIN';
+      userEvent.eventAveragePotentialWin = userEvent.totalEventPotentialWin as number / userEvent.userChallengeData.length as number;
       delete userEvent.challenges;
+      delete userEvent._id;
       return userEvent;
     });
 
