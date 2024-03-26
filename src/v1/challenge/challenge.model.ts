@@ -7,6 +7,7 @@ export interface IChallenge {
   status?: boolean,
   playStatus?: IPlayStatus
   odd?: Number
+  changePercentage?: Number
   event: Types.ObjectId;
   createdBy: Types.ObjectId;
   createdAt: Date
@@ -34,6 +35,10 @@ const challengeSchema = new Schema<IChallenge>({
   odd: {
     type: Number,
     default: 0.9,
+  },
+  changePercentage: {
+    type: Number,
+    default: 0,
   },
   event: Schema.Types.ObjectId,
   createdBy: Schema.Types.ObjectId,

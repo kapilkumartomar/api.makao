@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 
 import { makaoPlatformFeePercentage, wentWrong } from '@util/helper';
 import { updateUsersBulkwrite } from '@user/user.resources';
+import { find, get } from 'lodash';
 import {
   createPlay, getEventVolume, findPlay, findOneAndUpdatePlay, getEventChallengesVolume,
 } from './play.resources';
@@ -38,7 +39,7 @@ export async function handleCreatePlay(req: Request, res: Response) {
     // need to find Challenges with Status "DEFAULT" to get volume
     const challengesWithStatusDefaultPromise = findChallenges(
       { playStatus: 'DEFAULT', event: body?.event },
-      { _id: 1 },
+      { _id: 1, odd: 1 },
     );
 
     const [
@@ -80,16 +81,23 @@ export async function handleCreatePlay(req: Request, res: Response) {
     const fees = (eventVolume * makaoPlatformFeePercentage) + organiserFee;
 
     // preparing bulk write
-    const challengesUpdate = challengesVolumeRes.filter((val) => val?.challengeVolume).map((update) => ({
-      updateOne: {
-        filter: { _id: update.challenge },
-        update: {
-          $set: {
-            odd: Number(Number((eventVolume - fees) / update.challengeVolume).toFixed(2)),
+    const challengesUpdate = challengesVolumeRes.filter((val) => val?.challengeVolume).map((update) => {
+      const found = find(challengesWithStatusDefault, (o) => o?._id?.toString() === update?.challenge?.toString());
+      const oldOdd = get(found, 'odd', 0.9) as number;
+      const newOdd = Number(Number((eventVolume - fees) / update.challengeVolume).toFixed(2));
+      const changePercentage = Number(((newOdd - oldOdd) / oldOdd) * 100).toFixed(2);
+      return {
+        updateOne: {
+          filter: { _id: update.challenge },
+          update: {
+            $set: {
+              odd: Number(Number((eventVolume - fees) / update.challengeVolume).toFixed(2)),
+              changePercentage,
+            },
           },
         },
-      },
-    }));
+      };
+    });
 
     // updating the Users's balance, The amount he betted
     const balanceUpdate: any = [{
